@@ -92,29 +92,47 @@ public class StackedTextCurve : MonoBehaviour
     }
 
     /// <summary>
-    /// Computes per-vertex offsets that, when added to the source TMP mesh vertices, bend the text
-    /// along this component's curve. The output list is cleared and populated with one offset per
-    /// source vertex. Returns false if the text has no characters or mesh data yet.
+    /// Computes per-vertex offsets that, when added to the source TMP mesh vertices for the given
+    /// <paramref name="materialIndex"/>, bend the text along this component's curve. The output
+    /// list is cleared and populated with one offset per source vertex of that sub-mesh, so RTL /
+    /// Arabic fallback glyphs (which TMP routes through sub-meshes) are bent the same way as the
+    /// primary text. Returns false if the text has no characters or mesh data yet.
     /// </summary>
-    public bool TryGetVertexOffsets(TMP_Text text, List<Vector3> vertexOffsets)
+    public bool TryGetVertexOffsets(TMP_Text text, int materialIndex, List<Vector3> vertexOffsets)
     {
         if (text == null)
             return false;
-        return TryGetCurvedVertexOffsets(text, Curve, CurveScale, ReferenceWidth, KeepTextCentered, vertexOffsets);
+        return TryGetCurvedVertexOffsets(text, materialIndex, Curve, CurveScale, ReferenceWidth, KeepTextCentered, vertexOffsets);
     }
 
-    private static bool TryGetCurvedVertexOffsets(TMP_Text text, AnimationCurve curve, float curveScale, float referenceWidth, bool stabilizeY, List<Vector3> vertexOffsets)
+    /// <summary>
+    /// Backwards-compatible overload that targets the primary material (index 0). Prefer the
+    /// overload that takes an explicit materialIndex so fallback (e.g. Arabic) sub-meshes are also
+    /// covered.
+    /// </summary>
+    public bool TryGetVertexOffsets(TMP_Text text, List<Vector3> vertexOffsets)
     {
-        text.ForceMeshUpdate(true, true);
-        TMP_TextInfo textInfo = text.textInfo;
-        int characterCount = textInfo.characterCount;
+        return TryGetVertexOffsets(text, 0, vertexOffsets);
+    }
 
-        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0 || textInfo.meshInfo[0].vertices == null)
+    private static bool TryGetCurvedVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float curveScale, float referenceWidth, bool stabilizeY, List<Vector3> vertexOffsets)
+    {
+        TMP_TextInfo textInfo = text.textInfo;
+        int characterCount = textInfo != null ? textInfo.characterCount : 0;
+
+        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0)
+            return false;
+
+        if (materialIndex < 0 || materialIndex >= textInfo.meshInfo.Length)
+            return false;
+
+        var targetVertices = textInfo.meshInfo[materialIndex].vertices;
+        if (targetVertices == null)
             return false;
 
         GetBounds(text, referenceWidth, out var boundsMaxX, out var boundsMinX);
 
-        int requiredLength = textInfo.meshInfo[0].vertices.Length;
+        int requiredLength = targetVertices.Length;
         vertexOffsets.Clear();
         if (vertexOffsets.Capacity < requiredLength)
             vertexOffsets.Capacity = requiredLength;
@@ -131,13 +149,12 @@ public class StackedTextCurve : MonoBehaviour
             if (!charInfo.isVisible)
                 continue;
 
-            int vertexIndex = charInfo.vertexIndex;
-            int materialIndex = charInfo.materialReferenceIndex;
-
-            if (materialIndex >= textInfo.meshInfo.Length)
+            // Only process characters that belong to this material's sub-mesh.
+            if (charInfo.materialReferenceIndex != materialIndex)
                 continue;
 
-            var sourceVertices = textInfo.meshInfo[materialIndex].vertices;
+            int vertexIndex = charInfo.vertexIndex;
+            var sourceVertices = targetVertices;
 
             if (vertexIndex + 3 >= sourceVertices.Length)
                 continue;

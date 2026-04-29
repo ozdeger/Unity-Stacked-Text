@@ -23,23 +23,26 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 ## Features
 
 - **Single Drawcall** — Embeds the parameters into texcoord3 channel to achieve single drawcall.
-- **Multiple Stack Layers** — Add as many stacks as you need, each with independent settings.
+- **Multiple Stack Layers** — Add upto 8 stack, each with independent settings.
 - **Per-Layer Gradient Colors** — Assign a `Gradient` to each stack for smooth color transitions across layers.
 - **Configurable Offsets** — Set start and end offsets per stack to control the direction and depth of the effect.
 - **Softness & Dilation** — Fine-tune the edge softness and thickness of each layer independently.
-- **Curve Support** — Apply an `AnimationCurve` to bend text along an arc, with optional centering and reference width.
+- **Curve & Scale Support** — Apply an `AnimationCurve` to bend text along an arc, with optional centering and reference width.And also scale with the curve effect.
 - **Editor Preview** — Runs in Edit Mode via `[ExecuteInEditMode]`, so you see results instantly without entering Play Mode.
 - **Zero Allocation at Runtime** — Reuses cached lists and meshes to avoid GC pressure during updates.
 - **Automatic Material Setup** — Detects and creates a compatible `Distance Field Dilate` material if one isn't assigned.
+- **Fallback asset & Icon support** — Support fallback assets & TMP icons by default.Compatible with RTL languages as well.
+- **Animation Clip Support** — Change all fields via animation clips to create dynamic effects.
 
 ---
 
 ## Requirements
 
-| Dependency | Version |
-|---|---|
-| Unity | 2021.3+ |
-| TextMeshPro | Built-in (via Package Manager) |
+| Dependency         | Version |
+|--------------------|---|
+| Unity              | 2021.3+ |
+| TextMeshPro        | Built-in (via Package Manager) |
+| NaughtyAttributes |https://github.com/dbrizov/NaughtyAttributes |
 
 ---
 
@@ -48,9 +51,9 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 1. Add a **TextMeshPro** text object to your scene (UI or World Space).
 2. Add the **StackedText** component to the same GameObject.
 3. The `Text` field auto-populates. If not, drag your `TMP_Text` reference in.
-4. Click **+** on the **Stacks** list to add a layer.
+4. Increase **StackCount** to add new stack
 5. Configure the stack's **Color**, **Start/End Offset**, **Softness**, and **Dilate** to taste.
-6. Enable **Use Curve** and adjust the **Curve** and **Curve Scale** for arced text.
+6. Add StackedTextCurve for Arc like curved text or StackedTextScale for scale with curve effect if desired.
 
 ---
 
@@ -72,15 +75,25 @@ The **main text** sits on top of all stacks and has its own **MainTextSoftness**
 
 ---
 
-## Curve Settings
+## Curve Component
 
 | Property | Description |
 |---|---|
-| **Use Curve** | Enable curved text layout. |
 | **Curve** | An `AnimationCurve` defining the arc shape. |
 | **Curve Scale** | Multiplier for the curve's vertical displacement. |
 | **Keep Text Centered** | Offsets the curve so the midpoint stays at the baseline. |
 | **Reference Width** | Overrides the text bounds width for curve calculations. Useful for consistent arcs across varying text lengths. |
+
+---
+
+## Scale Component
+
+| Property               | Description                                                                                                     |
+|------------------------|-----------------------------------------------------------------------------------------------------------------|
+| **Curve**              | An `AnimationCurve` defining the arc shape.                                                                     |
+| **Phase**              | Shifts the curve evaluation along the X axis.                                                                   |
+| **MirrorAlongX** | Mirror curve along X axis for symetric scale curve.                                                             |
+| **Reference Width**    | Overrides the text bounds width for curve calculations. Useful for consistent arcs across varying text lengths. |
 
 ---
 

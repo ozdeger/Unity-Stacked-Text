@@ -69,16 +69,24 @@ public class StackedTextScale : MonoBehaviour
     #region Public API
 
     /// <summary>
-    /// Computes per-vertex offsets that, when added to the source TMP mesh vertices, scale each
-    /// character around its baseline midpoint according to <see cref="Curve"/>. The output list is
-    /// cleared and populated with one offset per source vertex. Returns false if the text has no
-    /// characters or mesh data yet.
+    /// Computes per-vertex offsets that, when added to the source TMP mesh vertices for the given
+    /// <paramref name="materialIndex"/>, scale each character around its baseline midpoint
+    /// according to <see cref="Curve"/>. The output list is sized to that sub-mesh's vertex count
+    /// so RTL / Arabic fallback glyphs (rendered through TMP sub-meshes) are also scaled.
     /// </summary>
-    public bool TryGetVertexOffsets(TMP_Text text, List<Vector3> vertexOffsets)
+    public bool TryGetVertexOffsets(TMP_Text text, int materialIndex, List<Vector3> vertexOffsets)
     {
         if (text == null)
             return false;
-        return TryGetScaledVertexOffsets(text, Curve, Phase, MirrorAlongX, ReferenceWidth, vertexOffsets);
+        return TryGetScaledVertexOffsets(text, materialIndex, Curve, Phase, MirrorAlongX, ReferenceWidth, vertexOffsets);
+    }
+
+    /// <summary>
+    /// Backwards-compatible overload that targets the primary material (index 0).
+    /// </summary>
+    public bool TryGetVertexOffsets(TMP_Text text, List<Vector3> vertexOffsets)
+    {
+        return TryGetVertexOffsets(text, 0, vertexOffsets);
     }
 
     /// <summary>
@@ -116,21 +124,27 @@ public class StackedTextScale : MonoBehaviour
         }
     }
 
-    public static bool TryGetScaledVertexOffsets(TMP_Text text, AnimationCurve curve, float phase, bool mirrorAlongX, float referenceWidth, List<Vector3> vertexOffsets)
+    public static bool TryGetScaledVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float phase, bool mirrorAlongX, float referenceWidth, List<Vector3> vertexOffsets)
     {
         if (curve == null)
             return false;
 
-        text.ForceMeshUpdate(true, true);
         TMP_TextInfo textInfo = text.textInfo;
-        int characterCount = textInfo.characterCount;
+        int characterCount = textInfo != null ? textInfo.characterCount : 0;
 
-        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0 || textInfo.meshInfo[0].vertices == null)
+        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0)
+            return false;
+
+        if (materialIndex < 0 || materialIndex >= textInfo.meshInfo.Length)
+            return false;
+
+        var targetVertices = textInfo.meshInfo[materialIndex].vertices;
+        if (targetVertices == null)
             return false;
 
         StackedTextCurve.GetBounds(text, referenceWidth, out var boundsMaxX, out var boundsMinX);
 
-        int requiredLength = textInfo.meshInfo[0].vertices.Length;
+        int requiredLength = targetVertices.Length;
         vertexOffsets.Clear();
         if (vertexOffsets.Capacity < requiredLength)
             vertexOffsets.Capacity = requiredLength;
@@ -149,13 +163,12 @@ public class StackedTextScale : MonoBehaviour
             if (!charInfo.isVisible)
                 continue;
 
-            int vertexIndex = charInfo.vertexIndex;
-            int materialIndex = charInfo.materialReferenceIndex;
-
-            if (materialIndex >= textInfo.meshInfo.Length)
+            // Only process characters that belong to this material's sub-mesh.
+            if (charInfo.materialReferenceIndex != materialIndex)
                 continue;
 
-            var sourceVertices = textInfo.meshInfo[materialIndex].vertices;
+            int vertexIndex = charInfo.vertexIndex;
+            var sourceVertices = targetVertices;
 
             if (vertexIndex + 3 >= sourceVertices.Length)
                 continue;
