@@ -17,18 +17,19 @@ public class StackedText : MonoBehaviour
     [Range(-1, 1f)] public float MainTextDilate;
     [SerializeField] public List<StackConfig> Stacks = new();
 
-    [Header("Curve Settings")]
-    [SerializeField] private bool UseCurve;
-    [SerializeField] private AnimationCurve Curve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-    [SerializeField] private float CurveScale = 1f;
-    [SerializeField] private bool KeepTextCentered;
-    [SerializeField] private float ReferenceWidth;
-#if UNITY_EDITOR
-    [SerializeField] private bool DrawCurveGizmos = true;
-#endif
+    [Header("Optional")]
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, " +
+             "its animation curve is applied to the text vertices before stacking.")]
+    [SerializeField] private StackedTextCurve Curve;
+
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, " +
+             "its animation curve is used to scale each character around its baseline midpoint " +
+             "before stacking.")]
+    [SerializeField] private StackedTextScale Scale;
 
     private Mesh _cachedMesh;
     private readonly List<Vector3> _curveOffsets = new();
+    private readonly List<Vector3> _scaleOffsets = new();
     private readonly List<Vector3> _sourceVerts = new();
     private readonly List<Color32> _sourceColors = new();
     private readonly List<Vector2> _sourceUVs = new();
@@ -46,6 +47,12 @@ public class StackedText : MonoBehaviour
     private readonly List<StackConfig> _lastStacks = new();
     private Vector3 _lastLossyScale;
     private bool _forceUpdateNextFrame;
+    private StackedTextCurve _lastCurveRef;
+    private bool _lastCurveActive;
+    private int _lastCurveHash;
+    private StackedTextScale _lastScaleRef;
+    private bool _lastScaleActive;
+    private int _lastScaleHash;
 
     #endregion
 
@@ -55,6 +62,8 @@ public class StackedText : MonoBehaviour
     private void OnValidate()
     {
         Text ??= GetComponent<TMP_Text>();
+        TryAutoCollectCurve();
+        TryAutoCollectScale();
         UnityEditor.EditorApplication.delayCall += ValidateMaterial;
         EnsureShaderChannels();
         _forceUpdateNextFrame = true;
@@ -133,9 +142,23 @@ public class StackedText : MonoBehaviour
         Canvas.willRenderCanvases += OnPreRenderCanvas;
         TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnTextChanged);
 
+        TryAutoCollectCurve();
+        TryAutoCollectScale();
         EnsureShaderChannels();
 
         _forceUpdateNextFrame = true;
+    }
+
+    public void TryAutoCollectCurve()
+    {
+        if (Curve == null)
+            TryGetComponent(out Curve);
+    }
+
+    public void TryAutoCollectScale()
+    {
+        if (Scale == null)
+            TryGetComponent(out Scale);
     }
 
     private void OnDisable()
@@ -242,11 +265,19 @@ public class StackedText : MonoBehaviour
         }
 
         // --- APPLY CURVE OFFSETS ---
-        if (UseCurve && TryGetCurvedVertexOffsets(Text, Curve, CurveScale, ReferenceWidth, KeepTextCentered, _curveOffsets))
+        if (IsCurveActive() && Curve.TryGetVertexOffsets(Text, _curveOffsets))
         {
             int loopCount = Mathf.Min(sourceVCount, _curveOffsets.Count);
             for (int v = 0; v < loopCount; v++)
                 _sourceVerts[v] += _curveOffsets[v];
+        }
+
+        // --- APPLY SCALE OFFSETS ---
+        if (IsScaleActive() && Scale.TryGetVertexOffsets(Text, _scaleOffsets))
+        {
+            int loopCount = Mathf.Min(sourceVCount, _scaleOffsets.Count);
+            for (int v = 0; v < loopCount; v++)
+                _sourceVerts[v] += _scaleOffsets[v];
         }
 
         // --- PREPARE OUTPUT ---
@@ -356,6 +387,18 @@ public class StackedText : MonoBehaviour
             return true;
         if (_lastStacks.Count != Stacks.Count)
             return true;
+        if (_lastCurveRef != Curve)
+            return true;
+        if (_lastCurveActive != IsCurveActive())
+            return true;
+        if (Curve != null && _lastCurveHash != Curve.GetParametersHash())
+            return true;
+        if (_lastScaleRef != Scale)
+            return true;
+        if (_lastScaleActive != IsScaleActive())
+            return true;
+        if (Scale != null && _lastScaleHash != Scale.GetParametersHash())
+            return true;
 
         for (int i = 0; i < Stacks.Count; i++)
         {
@@ -363,6 +406,16 @@ public class StackedText : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    private bool IsCurveActive()
+    {
+        return Curve != null && Curve.enabled && Curve.gameObject.activeInHierarchy;
+    }
+
+    private bool IsScaleActive()
+    {
+        return Scale != null && Scale.enabled && Scale.gameObject.activeInHierarchy;
     }
 
     private bool IsExtraPaddingRequired()
@@ -385,96 +438,6 @@ public class StackedText : MonoBehaviour
 
     #endregion
 
-    #region Curve
-
-    public static bool TryGetCurvedVertexOffsets(TMP_Text text, AnimationCurve curve, float curveScale, float referenceWidth, bool stabilizeY, List<Vector3> vertexOffsets)
-    {
-        text.ForceMeshUpdate(true, true);
-        TMP_TextInfo textInfo = text.textInfo;
-        int characterCount = textInfo.characterCount;
-
-        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0 || textInfo.meshInfo[0].vertices == null)
-            return false;
-
-        GetBounds(text, referenceWidth, out var boundsMaxX, out var boundsMinX);
-
-        int requiredLength = textInfo.meshInfo[0].vertices.Length;
-        vertexOffsets.Clear();
-        if (vertexOffsets.Capacity < requiredLength)
-            vertexOffsets.Capacity = requiredLength;
-        for (int i = 0; i < requiredLength; i++)
-            vertexOffsets.Add(default);
-
-        float yGlobalOffset = 0;
-        if (stabilizeY)
-            yGlobalOffset = curve.Evaluate(0.5f) * text.bounds.size.x * curveScale * 0.1f;
-
-        for (int i = 0; i < characterCount; i++)
-        {
-            var charInfo = textInfo.characterInfo[i];
-            if (!charInfo.isVisible)
-                continue;
-
-            int vertexIndex = charInfo.vertexIndex;
-            int materialIndex = charInfo.materialReferenceIndex;
-
-            if (materialIndex >= textInfo.meshInfo.Length)
-                continue;
-
-            var sourceVertices = textInfo.meshInfo[materialIndex].vertices;
-
-            if (vertexIndex + 3 >= sourceVertices.Length)
-                continue;
-
-            Vector3 v0 = sourceVertices[vertexIndex + 0];
-            Vector3 v1 = sourceVertices[vertexIndex + 1];
-            Vector3 v2 = sourceVertices[vertexIndex + 2];
-            Vector3 v3 = sourceVertices[vertexIndex + 3];
-
-            Vector3 offsetToMidBaseline = new Vector3((v0.x + v2.x) / 2, charInfo.baseLine, 0);
-
-            float x0 = (offsetToMidBaseline.x - boundsMinX) / (boundsMaxX - boundsMinX);
-            float x1 = x0 + 0.0001f;
-            float y0 = curve.Evaluate(1 - x0) * text.bounds.size.x * curveScale * 0.1f;
-            float y1 = curve.Evaluate(1 - x1) * text.bounds.size.x * curveScale * 0.1f;
-
-            Vector3 horizontal = Vector3.right;
-            Vector3 tangent = new Vector3(x1 * (boundsMaxX - boundsMinX) + boundsMinX, y1) -
-                              new Vector3(offsetToMidBaseline.x, y0);
-
-            float dot = Mathf.Acos(Vector3.Dot(horizontal, tangent.normalized)) * Mathf.Rad2Deg;
-            Vector3 cross = Vector3.Cross(horizontal, tangent);
-            float angle = cross.z > 0 ? dot : 360 - dot;
-
-            Matrix4x4 matrix = Matrix4x4.TRS(new Vector3(0, y0 - yGlobalOffset, 0), Quaternion.Euler(0, 0, angle), Vector3.one);
-
-            Vector3 t0 = matrix.MultiplyPoint3x4(v0 - offsetToMidBaseline) + offsetToMidBaseline;
-            Vector3 t1 = matrix.MultiplyPoint3x4(v1 - offsetToMidBaseline) + offsetToMidBaseline;
-            Vector3 t2 = matrix.MultiplyPoint3x4(v2 - offsetToMidBaseline) + offsetToMidBaseline;
-            Vector3 t3 = matrix.MultiplyPoint3x4(v3 - offsetToMidBaseline) + offsetToMidBaseline;
-
-            vertexOffsets[vertexIndex + 0] = t0 - v0;
-            vertexOffsets[vertexIndex + 1] = t1 - v1;
-            vertexOffsets[vertexIndex + 2] = t2 - v2;
-            vertexOffsets[vertexIndex + 3] = t3 - v3;
-        }
-        return true;
-    }
-
-    private static void GetBounds(TMP_Text text, float referenceWidth, out float boundsMaxX, out float boundsMinX)
-    {
-        boundsMinX = text.bounds.min.x;
-        boundsMaxX = text.bounds.max.x;
-
-        if (referenceWidth > 0)
-        {
-            boundsMinX = Mathf.Min(boundsMinX, -referenceWidth / 2f);
-            boundsMaxX = Mathf.Max(boundsMaxX, referenceWidth / 2f);
-        }
-    }
-
-    #endregion
-
     #region Public API
 
     private void SaveLastUsedProperties()
@@ -482,18 +445,33 @@ public class StackedText : MonoBehaviour
         _lastShowMainText = ShowMainText;
         _lastMainTextDilate = MainTextDilate;
         _lastMainTextSoftness = MainTextSoftness;
+        _lastCurveRef = Curve;
+        _lastCurveActive = IsCurveActive();
+        _lastCurveHash = Curve != null ? Curve.GetParametersHash() : 0;
+        _lastScaleRef = Scale;
+        _lastScaleActive = IsScaleActive();
+        _lastScaleHash = Scale != null ? Scale.GetParametersHash() : 0;
         _lastStacks.Clear();
         _lastStacks.AddRange(Stacks);
     }
-    
+
     public void SetStacks(List<StackConfig> stacks)
     {
         if (stacks == null || stacks == Stacks)
             return;
-        
+
         Stacks = stacks;
         _forceUpdateNextFrame = true;
         Text.ForceMeshUpdate();
+    }
+
+    /// <summary>
+    /// Forces the next render pass to rebuild the stacked mesh. Used by <see cref="StackedTextCurve"/>
+    /// to push live updates from the editor when curve fields change.
+    /// </summary>
+    public void MarkDirty()
+    {
+        _forceUpdateNextFrame = true;
     }
 
     public void GetNormalizedSoftnessAndDilate(float dilate, float softness, out float normalizedDilate, out float normalizedSoftness)
@@ -502,55 +480,6 @@ public class StackedText : MonoBehaviour
         normalizedDilate = dilate / total * 0.85f;
         normalizedSoftness = softness / total * 0.85f;
     }
-
-    #endregion
-
-    #region Editor - Gizmos
-
-#if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        if (!enabled || Text == null || !UseCurve || !DrawCurveGizmos)
-            return;
-
-        var color = Gizmos.color;
-        var boundsSize = Text.bounds.size;
-        var lossyScale = transform.lossyScale;
-        var gizmoPosition = transform.position - new Vector3(0, boundsSize.y / 2f * lossyScale.y, 0);
-        GetBounds(Text, ReferenceWidth, out var minX, out var maxX);
-        var pointA = gizmoPosition + new Vector3(minX * lossyScale.x, 0, 0);
-        var pointB = gizmoPosition + new Vector3(maxX * lossyScale.x, 0, 0);
-        var offsetAxis = new Vector3(0, Vector2.Distance(pointA, pointB), 0);
-        Gizmos.color = Color.magenta;
-        DrawAnimationCurveGizmo(Curve, pointA, pointB, offsetAxis, CurveScale * 0.1f);
-
-        if (ReferenceWidth > 0)
-        {
-            var width = ReferenceWidth * lossyScale.x;
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(gizmoPosition, new(width, 1, 1));
-            Gizmos.color = color;
-        }
-    }
-
-    private static void DrawAnimationCurveGizmo(AnimationCurve curve, Vector3 pointA, Vector3 pointB, Vector3 offsetAxis, float curveScale, int resolution = 20)
-    {
-        if (curve == null || curve.length == 0 || resolution < 2)
-        {
-            Gizmos.DrawLine(pointA, pointB);
-            return;
-        }
-
-        var previousPoint = pointA + offsetAxis * curve.Evaluate(0f) * curveScale;
-        for (int i = 1; i <= resolution; i++)
-        {
-            float t = (float)i / resolution;
-            var curvePos = Vector3.Lerp(pointA, pointB, t) + offsetAxis * curve.Evaluate(t) * curveScale;
-            Gizmos.DrawLine(previousPoint, curvePos);
-            previousPoint = curvePos;
-        }
-    }
-#endif
 
     #endregion
 
