@@ -22,9 +22,8 @@ public class StackedTextScale : MonoBehaviour
     [Tooltip("Shifts the curve evaluation along the X axis (value is divided by 10 internally).")]
     public float Phase = 0f;
 
-    [Tooltip("If true, the curve is sampled mirrored (right-to-left) to match StackedTextCurve's " +
-             "convention of evaluating with (1 - x). Leave off for direct left-to-right sampling, " +
-             "which matches LegacyAnimatedCurveText.")]
+    [Tooltip("If true, the curve is sampled mirrored along X (right-to-left). Leave off for " +
+             "direct left-to-right sampling, which is the default and matches StackedTextCurve.")]
     public bool MirrorAlongX = false;
 
     [Tooltip("Optional override of the text bounds width used to normalize character positions. " +

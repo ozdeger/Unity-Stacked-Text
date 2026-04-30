@@ -168,8 +168,8 @@ public class StackedTextCurve : MonoBehaviour
 
             float x0 = (offsetToMidBaseline.x - boundsMinX) / (boundsMaxX - boundsMinX);
             float x1 = x0 + 0.0001f;
-            float y0 = curve.Evaluate(1 - x0) * text.bounds.size.x * curveScale * 0.1f;
-            float y1 = curve.Evaluate(1 - x1) * text.bounds.size.x * curveScale * 0.1f;
+            float y0 = curve.Evaluate(x0) * text.bounds.size.x * curveScale * 0.1f;
+            float y1 = curve.Evaluate(x1) * text.bounds.size.x * curveScale * 0.1f;
 
             Vector3 horizontal = Vector3.right;
             Vector3 tangent = new Vector3(x1 * (boundsMaxX - boundsMinX) + boundsMinX, y1) -
@@ -213,48 +213,67 @@ public class StackedTextCurve : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        if (!enabled || !DrawCurveGizmos)
+        if (!DrawCurveGizmos || Curve == null || Curve.length == 0)
             return;
 
-        if (!TryGetComponent<TMP_Text>(out var text))
+        if (!TryGetComponent<TMP_Text>(out var text) || text.textInfo == null)
             return;
 
-        var color = Gizmos.color;
-        var boundsSize = text.bounds.size;
-        var lossyScale = transform.lossyScale;
-        var gizmoPosition = transform.position - new Vector3(0, boundsSize.y / 2f * lossyScale.y, 0);
-        GetBounds(text, ReferenceWidth, out var minX, out var maxX);
-        var pointA = gizmoPosition + new Vector3(minX * lossyScale.x, 0, 0);
-        var pointB = gizmoPosition + new Vector3(maxX * lossyScale.x, 0, 0);
-        var offsetAxis = new Vector3(0, Vector2.Distance(pointA, pointB), 0);
-        Gizmos.color = Color.magenta;
-        DrawAnimationCurveGizmo(Curve, pointA, pointB, offsetAxis, CurveScale * 0.1f);
-
-        if (ReferenceWidth > 0)
-        {
-            var width = ReferenceWidth * lossyScale.x;
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireCube(gizmoPosition, new(width, 1, 1));
-            Gizmos.color = color;
-        }
-    }
-
-    private static void DrawAnimationCurveGizmo(AnimationCurve curve, Vector3 pointA, Vector3 pointB, Vector3 offsetAxis, float curveScale, int resolution = 20)
-    {
-        if (curve == null || curve.length == 0 || resolution < 2)
-        {
-            Gizmos.DrawLine(pointA, pointB);
+        GetBounds(text, ReferenceWidth, out var boundsMaxX, out var boundsMinX);
+        float boundsWidth = boundsMaxX - boundsMinX;
+        if (boundsWidth <= 0f)
             return;
+        
+        float yScale = text.bounds.size.x * CurveScale * 0.1f;
+        float yGlobalOffset = KeepTextCentered ? Curve.Evaluate(0.5f) * yScale : 0f;
+
+        var prevMatrix = Gizmos.matrix;
+        var prevColor = Gizmos.color;
+        Gizmos.matrix = transform.localToWorldMatrix;
+        
+        Gizmos.color = new Color(1f, 1f, 1f, 0.25f);
+        float yMin = text.bounds.min.y;
+        float yMax = text.bounds.max.y;
+        var bl = new Vector3(boundsMinX, yMin, 0f);
+        var br = new Vector3(boundsMaxX, yMin, 0f);
+        var tl = new Vector3(boundsMinX, yMax, 0f);
+        var tr = new Vector3(boundsMaxX, yMax, 0f);
+        Gizmos.DrawLine(bl, tl);
+        Gizmos.DrawLine(tl, tr);
+        Gizmos.DrawLine(tr, br);
+        Gizmos.DrawLine(br, bl);
+        
+        Gizmos.color = new Color(1f, 1f, 1f, 0.15f);
+        Gizmos.DrawLine(new Vector3(boundsMinX, -yGlobalOffset, 0f),
+                        new Vector3(boundsMaxX, -yGlobalOffset, 0f));
+        
+        Gizmos.color = Color.green;
+        const int segments = 96;
+        Vector3 prev = default;
+        for (int i = 0; i <= segments; i++)
+        {
+            float t = (float)i / segments;
+            float x = Mathf.Lerp(boundsMinX, boundsMaxX, t);
+            float y = Curve.Evaluate(t) * yScale - yGlobalOffset;
+            var point = new Vector3(x, y, 0f);
+
+            if (i > 0)
+                Gizmos.DrawLine(prev, point);
+            prev = point;
+        }
+        
+        Gizmos.color = Color.yellow;
+        float dotRadius = boundsWidth * 0.005f;
+        for (int i = 0; i < Curve.length; i++)
+        {
+            var key = Curve[i];
+            float x = Mathf.Lerp(boundsMinX, boundsMaxX, Mathf.Clamp01(key.time));
+            float y = key.value * yScale - yGlobalOffset;
+            Gizmos.DrawSphere(new Vector3(x, y, 0f), dotRadius);
         }
 
-        var previousPoint = pointA + offsetAxis * curve.Evaluate(0f) * curveScale;
-        for (int i = 1; i <= resolution; i++)
-        {
-            float t = (float)i / resolution;
-            var curvePos = Vector3.Lerp(pointA, pointB, t) + offsetAxis * curve.Evaluate(t) * curveScale;
-            Gizmos.DrawLine(previousPoint, curvePos);
-            previousPoint = curvePos;
-        }
+        Gizmos.matrix = prevMatrix;
+        Gizmos.color = prevColor;
     }
 #endif
 
