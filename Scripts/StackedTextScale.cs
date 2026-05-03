@@ -81,6 +81,20 @@ public class StackedTextScale : MonoBehaviour
     }
 
     /// <summary>
+    /// Overload that computes per-vertex offsets relative to <paramref name="currentVertices"/>
+    /// (the post-curve / post-rotate vertex positions) instead of the pristine TMP source. Used
+    /// by <see cref="StackedText"/> so scale composes multiplicatively on top of other modules:
+    /// at scale = 0 the character truly collapses to its pivot regardless of other transforms.
+    /// The pivot itself is still derived from the original TMP verts so it stays stable.
+    /// </summary>
+    public bool TryGetVertexOffsets(TMP_Text text, int materialIndex, IList<Vector3> currentVertices, List<Vector3> vertexOffsets)
+    {
+        if (text == null)
+            return false;
+        return TryGetScaledVertexOffsets(text, materialIndex, Curve, Phase, MirrorAlongX, ReferenceWidth, vertexOffsets, currentVertices);
+    }
+
+    /// <summary>
     /// Backwards-compatible overload that targets the primary material (index 0).
     /// </summary>
     public bool TryGetVertexOffsets(TMP_Text text, List<Vector3> vertexOffsets)
@@ -123,7 +137,7 @@ public class StackedTextScale : MonoBehaviour
         }
     }
 
-    public static bool TryGetScaledVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float phase, bool mirrorAlongX, float referenceWidth, List<Vector3> vertexOffsets)
+    public static bool TryGetScaledVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float phase, bool mirrorAlongX, float referenceWidth, List<Vector3> vertexOffsets, IList<Vector3> currentVertices = null)
     {
         if (curve == null)
             return false;
@@ -137,13 +151,17 @@ public class StackedTextScale : MonoBehaviour
         if (materialIndex < 0 || materialIndex >= textInfo.meshInfo.Length)
             return false;
 
-        var targetVertices = textInfo.meshInfo[materialIndex].vertices;
-        if (targetVertices == null)
+        // Pivot is always derived from the pristine TMP vertices so it stays stable across
+        // frames and across other modules' transforms. The vertices we *displace* may either be
+        // the same pristine source, or the post-curve / post-rotate state passed in via
+        // currentVertices — see the docstring on TryGetVertexOffsets for why.
+        var origVertices = textInfo.meshInfo[materialIndex].vertices;
+        if (origVertices == null)
             return false;
 
         StackedTextCurve.GetBounds(text, referenceWidth, out var boundsMaxX, out var boundsMinX);
 
-        int requiredLength = targetVertices.Length;
+        int requiredLength = origVertices.Length;
         vertexOffsets.Clear();
         if (vertexOffsets.Capacity < requiredLength)
             vertexOffsets.Capacity = requiredLength;
@@ -155,6 +173,7 @@ public class StackedTextScale : MonoBehaviour
             return true;
 
         float phaseShift = phase / 10f;
+        bool useCurrent = currentVertices != null;
 
         for (int i = 0; i < characterCount; i++)
         {
@@ -167,22 +186,28 @@ public class StackedTextScale : MonoBehaviour
                 continue;
 
             int vertexIndex = charInfo.vertexIndex;
-            var sourceVertices = targetVertices;
 
-            if (vertexIndex + 3 >= sourceVertices.Length)
+            if (vertexIndex + 3 >= origVertices.Length)
+                continue;
+            if (useCurrent && vertexIndex + 3 >= currentVertices.Count)
                 continue;
 
-            Vector3 v0 = sourceVertices[vertexIndex + 0];
-            Vector3 v1 = sourceVertices[vertexIndex + 1];
-            Vector3 v2 = sourceVertices[vertexIndex + 2];
-            Vector3 v3 = sourceVertices[vertexIndex + 3];
+            Vector3 origV0 = origVertices[vertexIndex + 0];
+            Vector3 origV2 = origVertices[vertexIndex + 2];
 
-            Vector3 offsetToMidBaseline = new Vector3((v0.x + v2.x) / 2f, charInfo.baseLine, 0f);
+            Vector3 offsetToMidBaseline = new Vector3((origV0.x + origV2.x) / 2f, charInfo.baseLine, 0f);
 
             float x0 = (offsetToMidBaseline.x - boundsMinX) / range;
             float sampleX = (mirrorAlongX ? 1f - x0 : x0) + phaseShift;
             float scale = curve.Evaluate(sampleX);
             float scaleDelta = scale - 1f;
+
+            // Offset is applied to whatever the *current* vertex position is, so when this is
+            // chained after curve/rotate the scale still collapses cleanly to pivot at scale=0.
+            Vector3 v0 = useCurrent ? currentVertices[vertexIndex + 0] : origV0;
+            Vector3 v1 = useCurrent ? currentVertices[vertexIndex + 1] : origVertices[vertexIndex + 1];
+            Vector3 v2 = useCurrent ? currentVertices[vertexIndex + 2] : origV2;
+            Vector3 v3 = useCurrent ? currentVertices[vertexIndex + 3] : origVertices[vertexIndex + 3];
 
             vertexOffsets[vertexIndex + 0] = (v0 - offsetToMidBaseline) * scaleDelta;
             vertexOffsets[vertexIndex + 1] = (v1 - offsetToMidBaseline) * scaleDelta;

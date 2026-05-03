@@ -50,6 +50,10 @@ Properties {
 	_WeightNormal		("Weight Normal", float) = 0
 	_WeightBold			("Weight Bold", float) = 0.5
 
+	_ScaleRatioA		("Scale RatioA", float) = 1
+	_ScaleRatioB		("Scale RatioB", float) = 1
+	_ScaleRatioC		("Scale RatioC", float) = 1
+
 	_ShaderFlags		("Flags", float) = 0
 
 	_MainTex			("Font Atlas", 2D) = "white" {}
@@ -164,8 +168,8 @@ SubShader {
 			UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
 			float bold = step(input.texcoord1.y, 0);
-			float scaleRatioA = 1;
-			float scaleRatioB = 1;
+			float scaleRatioA = _ScaleRatioA;
+			float scaleRatioB = _ScaleRatioB;
 			float dilate = input.texcoord3.x;
 			float softness = input.texcoord3.y;
 			output.softness = float2(softness, softness);

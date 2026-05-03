@@ -32,6 +32,9 @@ public class StackedText : MonoBehaviour
     [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its animation curve is used to scale each character around its baseline midpoint before stacking.")]
     [SerializeField] private StackedTextScale Scale;
 
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its animation curve is used to rotate each character around its baseline midpoint on the Y axis before stacking.")]
+    [SerializeField] private StackedTextRotate Rotate;
+
     [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its 8 fixed stack slots are appended to Stacks each frame so their fields can be keyframed by Animation clips.")]
     [SerializeField] private StackedTextAnimatableStacks AnimatableStacks;
 
@@ -52,6 +55,11 @@ public class StackedText : MonoBehaviour
     private bool _hasWarnedAboutFallbackShader;
     private readonly List<Vector3> _curveOffsets = new();
     private readonly List<Vector3> _scaleOffsets = new();
+    private readonly List<Vector3> _rotateOffsets = new();
+    // Per-vertex character-local Z axis (post-rotation) used to push per-stack depth offsets
+    // along the rotated direction instead of flat world Z. Populated per material slot when the
+    // Rotate module is active; left empty when no rotation is in play.
+    private readonly List<Vector3> _localZAxes = new();
     private readonly List<Vector3> _sourceVerts = new();
     private readonly List<Color32> _sourceColors = new();
     private readonly List<Vector2> _sourceUVs = new();
@@ -76,6 +84,9 @@ public class StackedText : MonoBehaviour
     private StackedTextScale _lastScaleRef;
     private bool _lastScaleActive;
     private int _lastScaleHash;
+    private StackedTextRotate _lastRotateRef;
+    private bool _lastRotateActive;
+    private int _lastRotateHash;
     private StackedTextAnimatableStacks _lastAnimatableStacksRef;
     private bool _lastAnimatableStacksActive;
     // Working stack list: Stacks + (AnimatableStacks slots if module is active). Rebuilt each
@@ -92,6 +103,7 @@ public class StackedText : MonoBehaviour
         Text ??= GetComponent<TMP_Text>();
         TryAutoCollectCurve();
         TryAutoCollectScale();
+        TryAutoCollectRotate();
         TryAutoCollectAnimatableStacks();
         UnityEditor.EditorApplication.delayCall += ValidateMaterial;
         EnsureShaderChannels();
@@ -173,6 +185,7 @@ public class StackedText : MonoBehaviour
 
         TryAutoCollectCurve();
         TryAutoCollectScale();
+        TryAutoCollectRotate();
         TryAutoCollectAnimatableStacks();
         EnsureShaderChannels();
 
@@ -189,6 +202,12 @@ public class StackedText : MonoBehaviour
     {
         if (Scale == null)
             TryGetComponent(out Scale);
+    }
+
+    public void TryAutoCollectRotate()
+    {
+        if (Rotate == null)
+            TryGetComponent(out Rotate);
     }
 
     public void TryAutoCollectAnimatableStacks()
@@ -433,8 +452,28 @@ public class StackedText : MonoBehaviour
                     _sourceVerts[v] += _curveOffsets[v];
             }
 
+            // --- APPLY ROTATE OFFSETS (per material) ---
+            // We also fetch each vertex's post-rotation local Z axis so stack depth offsets
+            // (StackDepths) push along the rotated direction rather than world Z. Cleared on
+            // slots without active rotation so the stack loop falls back to flat world-Z depth.
+            _localZAxes.Clear();
+            if (IsRotateActive())
+            {
+                if (Rotate.TryGetVertexOffsets(Text, m, _rotateOffsets))
+                {
+                    int loopCount = Mathf.Min(sourceVCount, _rotateOffsets.Count);
+                    for (int v = 0; v < loopCount; v++)
+                        _sourceVerts[v] += _rotateOffsets[v];
+                }
+                Rotate.TryGetLocalZAxes(Text, m, _localZAxes);
+            }
+
             // --- APPLY SCALE OFFSETS (per material) ---
-            if (IsScaleActive() && Scale.TryGetVertexOffsets(Text, m, _scaleOffsets))
+            // Applied LAST and computed against the current _sourceVerts (post curve+rotate) so
+            // scale composes multiplicatively: at scale=0 the character truly collapses to its
+            // pivot regardless of what curve/rotate did first. Reading the pristine TMP source
+            // for this would re-introduce the original (v - pivot) and prevent collapse.
+            if (IsScaleActive() && Scale.TryGetVertexOffsets(Text, m, _sourceVerts, _scaleOffsets))
             {
                 int loopCount = Mathf.Min(sourceVCount, _scaleOffsets.Count);
                 for (int v = 0; v < loopCount; v++)
@@ -465,6 +504,12 @@ public class StackedText : MonoBehaviour
                     GetNormalizedSoftnessAndDilate(stackConfig.Dilate, stackConfig.Softness, out float dilate, out float softness);
                     var uv3 = new Vector2(dilate, softness);
                     var layerCount = stackConfig.LayerCount;
+                    // Per-stack depth from the optional Rotate module. When non-zero, the offset
+                    // is pushed along each vertex's character-local Z axis (post-rotation) so
+                    // stacks stay "behind" each rotated character; otherwise it falls back to
+                    // world Z via the default (0,0,1) entries in _localZAxes.
+                    float stackDepth = IsRotateActive() ? Rotate.GetStackDepth(s) : 0f;
+                    bool applyLocalDepth = stackDepth != 0f && _localZAxes.Count >= sourceVCount;
                     for (int i = layerCount; i >= 1; i--)
                     {
                         float t = layerCount == 1 ? 1 : (i - 1) / ((float)layerCount - 1);
@@ -474,7 +519,10 @@ public class StackedText : MonoBehaviour
 
                         for (int v = 0; v < sourceVCount; v++)
                         {
-                            _outVerts.Add(_sourceVerts[v] + currentOffset);
+                            Vector3 vertOffset = currentOffset;
+                            if (applyLocalDepth)
+                                vertOffset += stackDepth * _localZAxes[v];
+                            _outVerts.Add(_sourceVerts[v] + vertOffset);
                             _outUVs.Add(_sourceUVs[v]);
                             _outUV2s.Add(_sourceUV2s[v]);
                             _outUV3s.Add(uv3);
@@ -597,6 +645,12 @@ public class StackedText : MonoBehaviour
             return true;
         if (Scale != null && _lastScaleHash != Scale.GetParametersHash())
             return true;
+        if (_lastRotateRef != Rotate)
+            return true;
+        if (_lastRotateActive != IsRotateActive())
+            return true;
+        if (Rotate != null && _lastRotateHash != Rotate.GetParametersHash())
+            return true;
         if (_lastAnimatableStacksRef != AnimatableStacks)
             return true;
         if (_lastAnimatableStacksActive != IsAnimatableStacksActive())
@@ -620,6 +674,11 @@ public class StackedText : MonoBehaviour
     private bool IsScaleActive()
     {
         return Scale != null && Scale.enabled && Scale.gameObject.activeInHierarchy;
+    }
+
+    private bool IsRotateActive()
+    {
+        return Rotate != null && Rotate.enabled && Rotate.gameObject.activeInHierarchy;
     }
 
     private bool IsAnimatableStacksActive()
@@ -670,6 +729,9 @@ public class StackedText : MonoBehaviour
         _lastScaleRef = Scale;
         _lastScaleActive = IsScaleActive();
         _lastScaleHash = Scale != null ? Scale.GetParametersHash() : 0;
+        _lastRotateRef = Rotate;
+        _lastRotateActive = IsRotateActive();
+        _lastRotateHash = Rotate != null ? Rotate.GetParametersHash() : 0;
         _lastAnimatableStacksRef = AnimatableStacks;
         _lastAnimatableStacksActive = IsAnimatableStacksActive();
         _lastStackCount = _workingStacks.Count;
