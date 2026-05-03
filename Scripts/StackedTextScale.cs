@@ -103,6 +103,82 @@ public class StackedTextScale : MonoBehaviour
     }
 
     /// <summary>
+    /// Fills <paramref name="outScales"/> with the per-vertex character scale value sampled from
+    /// <see cref="Curve"/> (one entry per vertex of <paramref name="materialIndex"/>'s sub-mesh;
+    /// all 4 verts of a character share the same value). Non-character verts and unaffected
+    /// fallback verts get <c>1</c>. Used by <see cref="StackedText"/> to bake scale into the
+    /// rotation's local-Z axes so per-stack depth offsets shrink with the character.
+    /// </summary>
+    public bool TryGetCharacterScales(TMP_Text text, int materialIndex, List<float> outScales)
+    {
+        if (text == null)
+            return false;
+        return TryComputeCharacterScales(text, materialIndex, Curve, Phase, MirrorAlongX, ReferenceWidth, outScales);
+    }
+
+    public static bool TryComputeCharacterScales(TMP_Text text, int materialIndex, AnimationCurve curve, float phase, bool mirrorAlongX, float referenceWidth, List<float> outScales)
+    {
+        if (curve == null)
+            return false;
+
+        TMP_TextInfo textInfo = text.textInfo;
+        int characterCount = textInfo != null ? textInfo.characterCount : 0;
+
+        if (characterCount == 0 || textInfo.meshInfo == null || textInfo.meshInfo.Length == 0)
+            return false;
+
+        if (materialIndex < 0 || materialIndex >= textInfo.meshInfo.Length)
+            return false;
+
+        var origVertices = textInfo.meshInfo[materialIndex].vertices;
+        if (origVertices == null)
+            return false;
+
+        StackedTextCurve.GetBounds(text, referenceWidth, out var boundsMaxX, out var boundsMinX);
+
+        int requiredLength = origVertices.Length;
+        outScales.Clear();
+        if (outScales.Capacity < requiredLength)
+            outScales.Capacity = requiredLength;
+        for (int i = 0; i < requiredLength; i++)
+            outScales.Add(1f);
+
+        float range = boundsMaxX - boundsMinX;
+        if (Mathf.Approximately(range, 0f))
+            return true;
+
+        float phaseShift = phase / 10f;
+
+        for (int i = 0; i < characterCount; i++)
+        {
+            var charInfo = textInfo.characterInfo[i];
+            if (!charInfo.isVisible)
+                continue;
+
+            if (charInfo.materialReferenceIndex != materialIndex)
+                continue;
+
+            int vertexIndex = charInfo.vertexIndex;
+            if (vertexIndex + 3 >= origVertices.Length)
+                continue;
+
+            Vector3 v0 = origVertices[vertexIndex + 0];
+            Vector3 v2 = origVertices[vertexIndex + 2];
+            float pivotX = (v0.x + v2.x) / 2f;
+
+            float x0 = (pivotX - boundsMinX) / range;
+            float sampleX = (mirrorAlongX ? 1f - x0 : x0) + phaseShift;
+            float scale = curve.Evaluate(sampleX);
+
+            outScales[vertexIndex + 0] = scale;
+            outScales[vertexIndex + 1] = scale;
+            outScales[vertexIndex + 2] = scale;
+            outScales[vertexIndex + 3] = scale;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Returns a hash that changes whenever any parameter that affects the output offsets changes
     /// (Curve keyframes/tangents, Phase, MirrorAlongX, ReferenceWidth). Used by <see cref="StackedText"/>
     /// to detect edits even when Unity does not fire <c>OnValidate</c> (e.g. live drags inside the

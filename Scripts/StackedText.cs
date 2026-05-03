@@ -58,8 +58,13 @@ public class StackedText : MonoBehaviour
     private readonly List<Vector3> _rotateOffsets = new();
     // Per-vertex character-local Z axis (post-rotation) used to push per-stack depth offsets
     // along the rotated direction instead of flat world Z. Populated per material slot when the
-    // Rotate module is active; left empty when no rotation is in play.
+    // Rotate module is active; left empty when no rotation is in play. Stays a unit-magnitude
+    // direction; the per-character scale is applied separately in the stack loop.
     private readonly List<Vector3> _localZAxes = new();
+    // Per-vertex character scale (1 = unscaled). Populated when the Scale module is active and
+    // multiplied into the entire stack vertOffset so per-stack X/Y offsets AND depth shrink/grow
+    // with the character — at scale = 0 the stack collapses with its character.
+    private readonly List<float> _charScales = new();
     private readonly List<Vector3> _sourceVerts = new();
     private readonly List<Color32> _sourceColors = new();
     private readonly List<Vector2> _sourceUVs = new();
@@ -480,6 +485,15 @@ public class StackedText : MonoBehaviour
                     _sourceVerts[v] += _scaleOffsets[v];
             }
 
+            // --- FETCH PER-CHARACTER SCALES FOR STACK OFFSETS ---
+            // Used in the stack loop below to multiply the entire stack vertOffset (X/Y offset +
+            // local-Z depth) by each character's scale, so a scaled-down character takes its
+            // stacks with it. Cleared when scale is inactive so the stack loop's gate falls back
+            // to "no scaling".
+            _charScales.Clear();
+            if (IsScaleActive())
+                Scale.TryGetCharacterScales(Text, m, _charScales);
+
             // --- PREPARE OUTPUT ---
             int totalVertCount = sourceVCount * totalLayers;
             int totalTriCount = sourceTriCount * totalLayers;
@@ -510,6 +524,7 @@ public class StackedText : MonoBehaviour
                     // world Z via the default (0,0,1) entries in _localZAxes.
                     float stackDepth = IsRotateActive() ? Rotate.GetStackDepth(s) : 0f;
                     bool applyLocalDepth = stackDepth != 0f && _localZAxes.Count >= sourceVCount;
+                    bool applyCharScale = _charScales.Count >= sourceVCount;
                     for (int i = layerCount; i >= 1; i--)
                     {
                         float t = layerCount == 1 ? 1 : (i - 1) / ((float)layerCount - 1);
@@ -522,6 +537,8 @@ public class StackedText : MonoBehaviour
                             Vector3 vertOffset = currentOffset;
                             if (applyLocalDepth)
                                 vertOffset += stackDepth * _localZAxes[v];
+                            if (applyCharScale)
+                                vertOffset *= _charScales[v];
                             _outVerts.Add(_sourceVerts[v] + vertOffset);
                             _outUVs.Add(_sourceUVs[v]);
                             _outUV2s.Add(_sourceUV2s[v]);
