@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using NaughtyAttributes;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -12,77 +11,29 @@ public class StackedText : MonoBehaviour
     #region Fields
 
     private const string RequiredShaderName = "TextMeshPro/Distance Field Dilate";
-    public const int MaxStacks = 8;
 
     [SerializeField] private TMP_Text Text;
     [SerializeField] private bool ShowMainText = true;
-    [Range(0, 1)] public float MainTextSoftness;
-    [Range(-1, 1f)] public float MainTextDilate;
+    [Range(0, 1)] private float MainTextSoftness;
+    [Range(-1, 1f)] private float MainTextDilate;
 
-    [Tooltip("How many of the 8 stack slots below are active. Stacks beyond this count are " +
-             "hidden in the inspector and skipped at runtime. Set to 0 to disable stacking " +
-             "entirely (main layer still renders).")]
-    [Range(0, MaxStacks)]
-    public int StackCount = 0;
+    [Tooltip("Active stacks rendered behind the main text layer, drawn from last to first. " +
+             "Leave empty to disable stacking (the main layer still renders).")]
+    [SerializeField] public List<StackConfig> Stacks = new();
 
-    [ShowIf(nameof(ShowStack0))] public StackConfig Stack0;
-    [ShowIf(nameof(ShowStack1))] public StackConfig Stack1;
-    [ShowIf(nameof(ShowStack2))] public StackConfig Stack2;
-    [ShowIf(nameof(ShowStack3))] public StackConfig Stack3;
-    [ShowIf(nameof(ShowStack4))] public StackConfig Stack4;
-    [ShowIf(nameof(ShowStack5))] public StackConfig Stack5;
-    [ShowIf(nameof(ShowStack6))] public StackConfig Stack6;
-    [ShowIf(nameof(ShowStack7))] public StackConfig Stack7;
+    public int StackCount => Stacks?.Count ?? 0;
 
-    private bool ShowStack0() => StackCount > 0;
-    private bool ShowStack1() => StackCount > 1;
-    private bool ShowStack2() => StackCount > 2;
-    private bool ShowStack3() => StackCount > 3;
-    private bool ShowStack4() => StackCount > 4;
-    private bool ShowStack5() => StackCount > 5;
-    private bool ShowStack6() => StackCount > 6;
-    private bool ShowStack7() => StackCount > 7;
-
-    public StackConfig GetStack(int index)
-    {
-        switch (index)
-        {
-            case 0: return Stack0;
-            case 1: return Stack1;
-            case 2: return Stack2;
-            case 3: return Stack3;
-            case 4: return Stack4;
-            case 5: return Stack5;
-            case 6: return Stack6;
-            case 7: return Stack7;
-            default: return default;
-        }
-    }
-
-    private void SetStack(int index, StackConfig value)
-    {
-        switch (index)
-        {
-            case 0: Stack0 = value; break;
-            case 1: Stack1 = value; break;
-            case 2: Stack2 = value; break;
-            case 3: Stack3 = value; break;
-            case 4: Stack4 = value; break;
-            case 5: Stack5 = value; break;
-            case 6: Stack6 = value; break;
-            case 7: Stack7 = value; break;
-        }
-    }
+    public StackConfig GetStack(int index) => Stacks[index];
 
     [Header("Optional")]
-    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, " +
-             "its animation curve is applied to the text vertices before stacking.")]
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its animation curve is applied to the text vertices before stacking.")]
     [SerializeField] private StackedTextCurve Curve;
 
-    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, " +
-             "its animation curve is used to scale each character around its baseline midpoint " +
-             "before stacking.")]
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its animation curve is used to scale each character around its baseline midpoint before stacking.")]
     [SerializeField] private StackedTextScale Scale;
+
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its 8 fixed stack slots are appended to Stacks each frame so their fields can be keyframed by Animation clips.")]
+    [SerializeField] private StackedTextAnimatableStacks AnimatableStacks;
 
     // One cached mesh per TMP material slot (index 0 = primary, index 1+ = fallback sub-meshes
     // used by Arabic / RTL glyphs and any other character that is not in the primary font atlas).
@@ -116,7 +67,7 @@ public class StackedText : MonoBehaviour
     private float _lastMainTextDilate;
     private float _lastMainTextSoftness;
     private int _lastStackCount;
-    private readonly StackConfig[] _lastStacks = new StackConfig[MaxStacks];
+    private readonly List<StackConfig> _lastStacks = new();
     private Vector3 _lastLossyScale;
     private bool _forceUpdateNextFrame;
     private StackedTextCurve _lastCurveRef;
@@ -125,6 +76,11 @@ public class StackedText : MonoBehaviour
     private StackedTextScale _lastScaleRef;
     private bool _lastScaleActive;
     private int _lastScaleHash;
+    private StackedTextAnimatableStacks _lastAnimatableStacksRef;
+    private bool _lastAnimatableStacksActive;
+    // Working stack list: Stacks + (AnimatableStacks slots if module is active). Rebuilt each
+    // frame so animation-driven changes to the module's fields propagate without extra hooks.
+    private readonly List<StackConfig> _workingStacks = new();
 
     #endregion
 
@@ -136,6 +92,7 @@ public class StackedText : MonoBehaviour
         Text ??= GetComponent<TMP_Text>();
         TryAutoCollectCurve();
         TryAutoCollectScale();
+        TryAutoCollectAnimatableStacks();
         UnityEditor.EditorApplication.delayCall += ValidateMaterial;
         EnsureShaderChannels();
         _forceUpdateNextFrame = true;
@@ -216,6 +173,7 @@ public class StackedText : MonoBehaviour
 
         TryAutoCollectCurve();
         TryAutoCollectScale();
+        TryAutoCollectAnimatableStacks();
         EnsureShaderChannels();
 
         _forceUpdateNextFrame = true;
@@ -231,6 +189,12 @@ public class StackedText : MonoBehaviour
     {
         if (Scale == null)
             TryGetComponent(out Scale);
+    }
+
+    public void TryAutoCollectAnimatableStacks()
+    {
+        if (AnimatableStacks == null)
+            TryGetComponent(out AnimatableStacks);
     }
 
     private void OnDisable()
@@ -280,6 +244,10 @@ public class StackedText : MonoBehaviour
 
         bool scaleChanged = transform.lossyScale != _lastLossyScale;
         bool meshOverwritten = AnyCachedMeshOverwritten();
+
+        // Rebuild before HasPropertiesChanged so animation-clip mutations to AnimatableStacks
+        // (which never fire OnValidate) surface via the existing _lastStacks vs _workingStacks diff.
+        RebuildWorkingStacks();
 
         if (_forceUpdateNextFrame || scaleChanged || meshOverwritten || HasPropertiesChanged())
         {
@@ -382,6 +350,10 @@ public class StackedText : MonoBehaviour
 
         PopulateInvalidStackConfigs();
 
+        // Re-run after PopulateInvalidStackConfigs so any auto-corrected entries in Stacks make
+        // it into the working list this frame.
+        RebuildWorkingStacks();
+
         var isExtraPaddingRequired = IsExtraPaddingRequired();
         if (isExtraPaddingRequired != Text.extraPadding)
             Text.extraPadding = isExtraPaddingRequired;
@@ -401,9 +373,9 @@ public class StackedText : MonoBehaviour
         DetectSpriteSlots(textInfo, materialCount);
 
         int totalLayers = 1;
-        for (int i = 0; i < StackCount; i++)
+        for (int i = 0; i < _workingStacks.Count; i++)
         {
-            var stackConfig = GetStack(i);
+            var stackConfig = _workingStacks[i];
             if (!stackConfig.Enabled)
                 continue;
             totalLayers += stackConfig.LayerCount;
@@ -411,7 +383,7 @@ public class StackedText : MonoBehaviour
 
         GetNormalizedSoftnessAndDilate(MainTextDilate, MainTextSoftness, out float mainDilate, out float mainSoftness);
         var mainUV3 = new Vector2(mainDilate, mainSoftness);
-        Color32 mainFallbackColor = StackCount > 0 ? (Color32)GetStack(0).Color.Evaluate(0) : default;
+        Color32 mainFallbackColor = _workingStacks.Count > 0 ? (Color32)_workingStacks[0].Color.Evaluate(0) : default;
 
         // --- BUILD ONE STACKED MESH PER MATERIAL ---
         // meshInfo[0] is the primary text mesh; meshInfo[1..N] are TMP fallback sub-meshes.
@@ -484,9 +456,9 @@ public class StackedText : MonoBehaviour
             // shadow copies. The slot still gets the "main layer" pass below.
             if (!isSpriteSlotHere)
             {
-                for (int s = StackCount - 1; s >= 0; s--)
+                for (int s = _workingStacks.Count - 1; s >= 0; s--)
                 {
-                    var stackConfig = GetStack(s);
+                    var stackConfig = _workingStacks[s];
                     if (!stackConfig.Enabled)
                         continue;
 
@@ -592,14 +564,14 @@ public class StackedText : MonoBehaviour
 
     private void PopulateInvalidStackConfigs()
     {
-        // When the user bumps StackCount, previously-untouched slots may still hold the struct
-        // default (LayerCount == 0, etc.) — replace those with sensible defaults so the user
-        // sees something on screen instead of an empty/invalid stack.
-        for (int i = 0; i < StackCount; i++)
+        // When the user adds a new entry, it may still hold the struct default
+        // (LayerCount == 0, etc.) — replace those with sensible defaults so the user sees
+        // something on screen instead of an empty/invalid stack.
+        for (int i = 0; i < Stacks.Count; i++)
         {
-            if (!GetStack(i).IsInvalid())
+            if (!Stacks[i].IsInvalid())
                 continue;
-            SetStack(i, StackConfig.CreateDefault());
+            Stacks[i] = StackConfig.CreateDefault();
         }
     }
 
@@ -611,7 +583,7 @@ public class StackedText : MonoBehaviour
             return true;
         if (_lastShowMainText != ShowMainText)
             return true;
-        if (_lastStackCount != StackCount)
+        if (_lastStackCount != _workingStacks.Count)
             return true;
         if (_lastCurveRef != Curve)
             return true;
@@ -625,10 +597,16 @@ public class StackedText : MonoBehaviour
             return true;
         if (Scale != null && _lastScaleHash != Scale.GetParametersHash())
             return true;
+        if (_lastAnimatableStacksRef != AnimatableStacks)
+            return true;
+        if (_lastAnimatableStacksActive != IsAnimatableStacksActive())
+            return true;
 
-        for (int i = 0; i < StackCount; i++)
+        if (_lastStacks.Count != _workingStacks.Count)
+            return true;
+        for (int i = 0; i < _workingStacks.Count; i++)
         {
-            if (_lastStacks[i].HasChanged(GetStack(i)))
+            if (_lastStacks[i].HasChanged(_workingStacks[i]))
                 return true;
         }
         return false;
@@ -644,6 +622,20 @@ public class StackedText : MonoBehaviour
         return Scale != null && Scale.enabled && Scale.gameObject.activeInHierarchy;
     }
 
+    private bool IsAnimatableStacksActive()
+    {
+        return AnimatableStacks != null && AnimatableStacks.enabled && AnimatableStacks.gameObject.activeInHierarchy;
+    }
+
+    private void RebuildWorkingStacks()
+    {
+        _workingStacks.Clear();
+        for (int i = 0; i < Stacks.Count; i++)
+            _workingStacks.Add(Stacks[i]);
+        if (IsAnimatableStacksActive())
+            AnimatableStacks.AppendActiveStacks(_workingStacks);
+    }
+
     private bool IsExtraPaddingRequired()
     {
         if (Text == null || Text.canvas == null)
@@ -651,9 +643,9 @@ public class StackedText : MonoBehaviour
 
         var totalDilate = MathF.Abs(MainTextDilate);
         var totalSoftness = MathF.Abs(MainTextSoftness);
-        for (int i = 0; i < StackCount; i++)
+        for (int i = 0; i < _workingStacks.Count; i++)
         {
-            var stack = GetStack(i);
+            var stack = _workingStacks[i];
             if (!stack.Enabled)
                 continue;
             totalDilate += MathF.Abs(stack.Dilate);
@@ -678,29 +670,25 @@ public class StackedText : MonoBehaviour
         _lastScaleRef = Scale;
         _lastScaleActive = IsScaleActive();
         _lastScaleHash = Scale != null ? Scale.GetParametersHash() : 0;
-        _lastStackCount = StackCount;
-        for (int i = 0; i < MaxStacks; i++)
-            _lastStacks[i] = GetStack(i);
+        _lastAnimatableStacksRef = AnimatableStacks;
+        _lastAnimatableStacksActive = IsAnimatableStacksActive();
+        _lastStackCount = _workingStacks.Count;
+        _lastStacks.Clear();
+        for (int i = 0; i < _workingStacks.Count; i++)
+            _lastStacks.Add(_workingStacks[i]);
     }
 
     /// <summary>
-    /// Bulk-set the stack configs. Up to <see cref="MaxStacks"/> entries are copied into the
-    /// fixed slots; <see cref="StackCount"/> is set to the count provided. Pass an empty or
-    /// null collection to disable all stacking (this method does not clear the contents of
-    /// existing slots — they're just hidden by setting StackCount to 0).
+    /// Bulk-set the stack configs. Pass an empty or null collection to disable all stacking
+    /// (the main layer still renders).
     /// </summary>
     public void SetStacks(IList<StackConfig> stacks)
     {
-        if (stacks == null)
+        Stacks.Clear();
+        if (stacks != null)
         {
-            StackCount = 0;
-        }
-        else
-        {
-            int count = Mathf.Min(stacks.Count, MaxStacks);
-            for (int i = 0; i < count; i++)
-                SetStack(i, stacks[i]);
-            StackCount = count;
+            for (int i = 0; i < stacks.Count; i++)
+                Stacks.Add(stacks[i]);
         }
 
         _forceUpdateNextFrame = true;

@@ -23,7 +23,7 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 ## Features
 
 - **Single Drawcall** — Embeds the parameters into texcoord3 channel to achieve single drawcall.
-- **Multiple Stack Layers** — Add upto 8 stack, each with independent settings.
+- **Multiple Stack Layers** — Add as many stacks as you need, each with independent settings.
 - **Per-Layer Gradient Colors** — Assign a `Gradient` to each stack for smooth color transitions across layers.
 - **Configurable Offsets** — Set start and end offsets per stack to control the direction and depth of the effect.
 - **Softness & Dilation** — Fine-tune the edge softness and thickness of each layer independently.
@@ -42,7 +42,6 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 |--------------------|---|
 | Unity              | 2021.3+ |
 | TextMeshPro        | Built-in (via Package Manager) |
-| NaughtyAttributes |https://github.com/dbrizov/NaughtyAttributes |
 
 ---
 
@@ -51,8 +50,8 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 1. Add a **TextMeshPro** text object to your scene (UI or World Space).
 2. Add the **StackedText** component to the same GameObject.
 3. The `Text` field auto-populates. If not, drag your `TMP_Text` reference in.
-4. Increase **StackCount** to add new stack
-5. Configure the stack's **Color**, **Start/End Offset**, **Softness**, and **Dilate** to taste.
+4. Add entries to the **Stacks** list to create new stack layers.
+5. Configure each stack's **Color**, **Start/End Offset**, **Softness**, and **Dilate** to taste.
 6. Add StackedTextCurve for Arc like curved text or StackedTextScale for scale with curve effect if desired.
 
 ---

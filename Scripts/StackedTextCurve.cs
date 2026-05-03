@@ -115,7 +115,7 @@ public class StackedTextCurve : MonoBehaviour
         return TryGetVertexOffsets(text, 0, vertexOffsets);
     }
 
-    private static bool TryGetCurvedVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float curveScale, float referenceWidth, bool stabilizeY, List<Vector3> vertexOffsets)
+    public static bool TryGetCurvedVertexOffsets(TMP_Text text, int materialIndex, AnimationCurve curve, float curveScale, float referenceWidth, bool stabilizeY, List<Vector3> vertexOffsets)
     {
         TMP_TextInfo textInfo = text.textInfo;
         int characterCount = textInfo != null ? textInfo.characterCount : 0;
