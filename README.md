@@ -1,20 +1,42 @@
 <p align="center">
-  <img src="Images/example_stacked_text.png" alt="Stacked Text Example" width="720"/>
+  <img src="Documentation~/example_showcase.gif" alt="StackedText showcase scene in Play Mode" width="100%"/>
 </p>
 
-**Stylized layered text effects for TextMeshPro in Unity**
+<p align="center"><b>Stylized layered text effects for TextMeshPro in Unity</b></p>
 
-StackedText is a lightweight Unity component that generates stacked, multi-layered text with customizable colors, offsets, softness, and dilation — all driven by a single `TMP_Text` component. Optional sibling modules add per-character bending, scaling, Y-axis rotation, and animation-clip-friendly stack slots. Perfect for game titles, UI headers, and stylized labels.
+StackedText is a lightweight Unity component that generates stacked, multi-layered text with customizable colors, offsets, softness, and dilation — all driven by a single `TMP_Text` component and rendered in a single draw call. Optional sibling modules add per-character bending, scaling, Y-axis rotation, and animation-clip-friendly stack slots. Perfect for game titles, UI headers, and stylized labels.
+
+Everything in the GIF above ships as a ready-to-use prefab in the included [showcase scene](#showcase-scene).
 
 ---
 
-## Examples
+## Feature Showcase
+
+Reading the GIF left to right, top to bottom:
+
+1. **Multi-Color Depth** (`StackedText_TheQueen`) — A complete game-title look built from seven stacks. From front to back: a cream highlight along the top edge, the orange face depth, a thin navy rim, the blue outline with a darker bottom edge, a light-blue rim, a navy back plate and a soft shadow. Each stack is just a color, an offset and a dilate value.
+2. **Gradient Layers** (`StackedText_GradientLayers`) — One stack with **Layer Count** 6 and offsets that step diagonally down and to the right. Each sub-layer samples the stack's `Gradient`, from warm gold near the letters to dark brown at the back, for a smooth 3D extrusion.
+3. **Softness & Dilate** (`StackedText_SoftnessDilate`) — "NEON" is three stacks with no offset and growing dilate and softness: a pink core, a pink bloom and a wide purple haze. Dilate grows a stack's shape and softness blurs its edge, which is all a glow needs.
+4. **StackedTextCurve** (`StackedText_Curve`) — The text bends along an arch. An Animator keyframes **Curve Scale** from positive to negative, so it flexes from a frown to a smile. Letters tilt with the curve and every stack bends with them.
+5. **StackedTextScale** (`StackedText_ScaleWave`) — Each letter's scale is sampled from a looping wave curve. Keyframing **Phase** slides the wave through the text, so letters swell and shrink in turn, and their stacks scale with them.
+6. **StackedTextRotate** (`StackedText_RotateFlip`) — As **Phase** sweeps across "Flip!", each letter makes a full turn on its Y axis. **Stack Depths** push three dark stacks further back along each letter's rotated Z axis, so letters show real thickness when they turn edge-on.
+7. **Animatable Stacks** (`StackedText_AnimatableStacks`) — "PRESS" behaves like a 3D button. An Animator keyframes the extrusion and shadow slots of `StackedTextAnimatableStacks` together with the text's position, so the letters sink while the depth under them shortens.
+8. **Color Swaps** (`StackedText_ColorSwaps`) — Words in `<color=#hex>` tags get their own stack colors: each stack maps the gold, ruby and ice tag colors to matching dark outline and depth shades. A small script cycles the message at runtime, and the swaps follow the tags.
+9. **Show Main Text: Off** (`StackedText_ShowMainTextOff`) — Only the stacks render, and the face takes the first stack's color. A cream face with coral and blue offset copies gives "Retro" a misregistered-print look.
+10. **Icons & Rich Text** (`StackedText_IconsRichText`) — `<sprite>` icons render as single, un-stacked quads next to the stacked text, while italic (and bold or underlined) text stacks like any other glyph.
+11. **Runtime API** (`StackedText_RuntimePresets`) — A script calls `SetStacks()` every 1.5 seconds, swapping the whole stack setup and fill gradient between Candy, Gold, Ice and Lava presets.
+12. **Flip, Curve & Scale** (`StackedText_FlipCurveScale`) — The modules combined into a title reveal. Scale and Rotate share one keyframed **Phase**, so a reveal front sweeps across "Grand Prize": each letter pops in from zero with a slight overshoot and turns from edge-on to face-on, while Curve holds the line on an arch. It loops every 3 seconds.
+
+Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curve arch with a slow Scale "breathing" wave. The **Time Scale** control in the corner slows down, freezes or speeds up every animation, so you can study each effect frame by frame.
+
+### More examples
 
 <p align="center">
+  <img src="Images/example_stacked_text.png" alt="Stacked Text" width="380"/>
   <img src="Images/example_the_queen.png" alt="The Queen" width="380"/>
-  <img src="Images/example_flowers.png" alt="Flowers" width="380"/>
 </p>
 <p align="center">
+  <img src="Images/example_flowers.png" alt="Flowers" width="380"/>
   <img src="Images/example_blue_factory.png" alt="Blue Factory" width="380"/>
 </p>
 
@@ -36,6 +58,7 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 - **Unity 6 Ready** — One shader for both TMP vertex layouts: the `com.unity.textmeshpro` 3.x package (Unity 2021.3 / 2022.3) and the TextMeshPro built into `com.unity.ugui` 2.x (Unity 2023.2+ / Unity 6).
 - **Fallback asset & Icon support** — Supports fallback assets & TMP icons by default. Compatible with RTL languages as well.
 - **Animation Clip Support** — Change every numeric field via Animation clips to create dynamic effects, including the 8 fixed slots on `StackedTextAnimatableStacks`.
+- **Showcase Scene** — A ready-to-play demo scene with a prefab for every feature, using three example fonts (see [Showcase Scene](#showcase-scene)).
 
 ---
 
@@ -46,6 +69,13 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 | Unity              | 2021.3+ (including Unity 6) |
 | TextMeshPro        | `com.unity.textmeshpro` 3.x, or the TextMeshPro built into `com.unity.ugui` 2.x |
 | TMP Essential Resources | Imported at the default `Assets/TextMesh Pro/` location — the shader includes `Assets/TextMesh Pro/Shaders/TMPro.cginc` |
+
+---
+
+## Installation
+
+- **Unity package** — download [`StackedText_v1.4.0.unitypackage`](StackedText_v1.4.0.unitypackage) and import it with **Assets › Import Package › Custom Package…**. Everything goes to `Assets/Unity-Stacked-Text`.
+- **Git** — clone the repository (or add it as a submodule) anywhere under `Assets/`. The repository includes the `.meta` files, so asset references match the package.
 
 ---
 
@@ -63,6 +93,30 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
    - **StackedTextAnimatableStacks** — exposes 8 fixed `StackConfig` fields by name so an `Animator` can keyframe them.
 
 The `StackedText` component auto-collects all sibling modules on enable and on validate; you usually don't need to wire references manually.
+
+---
+
+## Showcase Scene
+
+Open `Examples/Scenes/StackedText_Showcase.unity` and press **Play** to see the scene from the GIF. In Edit Mode the animated examples rest on their first frame. Every card is a prefab in `Examples/Prefabs` (see [Feature Showcase](#feature-showcase)), ready to drop into your own UI.
+
+```
+Examples/
+├── Scenes/      StackedText_Showcase.unity
+├── Prefabs/     one prefab per card, plus the StackedText_Title header
+├── Animations/  looping clips and controllers for the animated examples
+├── Fonts/       Lilita One, Abril Fatface and Red Hat Display Black: .ttf, OFL.txt, SDF font asset and "- StackedText" material
+└── Scripts/     StackedTextShowcaseTextCycler, StackedTextShowcasePresetCycler, StackedTextShowcaseTimeScale (demo helpers)
+```
+
+- The **Time Scale** control in the top-right corner (a slider plus a text field for exact values, up to 10×) slows down, freezes or speeds up every animation in the scene. It adds the UI input module that matches the project's input handling (Input Manager or Input System package) at runtime.
+- The canvas is **Screen Space – Camera** with a perspective camera, so the Rotate example's depth reads as 3D.
+- The cards use three fonts: Lilita One, Abril Fatface, and Red Hat Display Black (the font of the original screenshots, used for "The Queen" and "Grand Prize").
+- Card descriptions use `LiberationSans SDF` and the icon uses the default `EmojiOne` sprite asset, both from **TMP Essential Resources**.
+- The example assets were authored in Unity 6. The core scripts and shader still support 2021.3+.
+- The font assets are static 1024 × 1024 SDF atlases with about 27% padding, which leaves room for thick dilated outlines. Regenerate them from the included `.ttf` files if you need more characters.
+- **Fonts**: [Lilita One](https://fonts.google.com/specimen/Lilita+One) by Juan Montoreano, [Abril Fatface](https://fonts.google.com/specimen/Abril+Fatface) by TypeTogether and [Red Hat Display](https://github.com/RedHatOfficial/RedHatFont) by The Red Hat Project Authors, all under the SIL Open Font License 1.1 (`OFL.txt` next to each font).
+- Don't need the demo? Delete the `Examples` folder; nothing else depends on it.
 
 ---
 
