@@ -27,10 +27,13 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 - **Per-Layer Gradient Colors** — Assign a `Gradient` to each stack for smooth color transitions across layers.
 - **Configurable Offsets** — Set start and end offsets per stack to control the direction and depth of the effect.
 - **Softness & Dilation** — Fine-tune the edge softness and thickness of each layer independently.
+- **Rich-Text Color Swaps** — Give `<color=#hex>` tagged words their own stack colors with per-stack Source → Target color pairs.
 - **Optional modules** — Mix and match `StackedTextCurve` (arc-bend), `StackedTextScale` (per-character scale), `StackedTextRotate` (per-character Y-axis rotation + stack depth), and `StackedTextAnimatableStacks` (8 named stack slots that can be keyframed by Animation clips). All modules are sibling components — add the ones you need.
 - **Editor Preview** — Runs in Edit Mode via `[ExecuteInEditMode]`, so you see results instantly without entering Play Mode.
 - **Zero Allocation at Runtime** — Reuses cached lists and meshes to avoid GC pressure during updates.
 - **Automatic Material Setup** — Detects and creates a compatible `Distance Field Dilate` material if one isn't assigned.
+- **Material Inspector** — `Distance Field Dilate` materials get a TMP-style inspector (`TMP_SDF_DilateShaderGUI`) with Face, Outline, Underlay, Lighting, Glow and Debug panels.
+- **Unity 6 Ready** — One shader for both TMP vertex layouts: the `com.unity.textmeshpro` 3.x package (Unity 2021.3 / 2022.3) and the TextMeshPro built into `com.unity.ugui` 2.x (Unity 2023.2+ / Unity 6).
 - **Fallback asset & Icon support** — Supports fallback assets & TMP icons by default. Compatible with RTL languages as well.
 - **Animation Clip Support** — Change every numeric field via Animation clips to create dynamic effects, including the 8 fixed slots on `StackedTextAnimatableStacks`.
 
@@ -38,10 +41,11 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 
 ## Requirements
 
-| Dependency         | Version |
+| Dependency         | Requirement |
 |--------------------|---|
-| Unity              | 2021.3+ |
-| TextMeshPro        | Built-in (via Package Manager) |
+| Unity              | 2021.3+ (including Unity 6) |
+| TextMeshPro        | `com.unity.textmeshpro` 3.x, or the TextMeshPro built into `com.unity.ugui` 2.x |
+| TMP Essential Resources | Imported at the default `Assets/TextMesh Pro/` location — the shader includes `Assets/TextMesh Pro/Shaders/TMPro.cginc` |
 
 ---
 
@@ -51,7 +55,7 @@ StackedText is a lightweight Unity component that generates stacked, multi-layer
 2. Add the **StackedText** component to the same GameObject.
 3. The `Text` field auto-populates. If not, drag your `TMP_Text` reference in.
 4. Add entries to the **Stacks** list to create new stack layers.
-5. Configure each stack's **Color**, **Start/End Offset**, **Softness**, and **Dilate** to taste.
+5. Configure each stack's **Color**, **Start/End Offset**, **Softness**, and **Dilate** to taste, and optionally add **Color Swaps** for `<color>`-tagged words.
 6. (Optional) Add any of the sibling modules to the same GameObject:
    - **StackedTextCurve** — bend the text along an arc.
    - **StackedTextScale** — scale each character along an `AnimationCurve` sampled by horizontal position.
@@ -75,8 +79,20 @@ Each `StackConfig` entry exposes the following:
 | **End Offset** | Position offset of the last (front-most) sub-layer. |
 | **Softness** | Edge softness of the stack layers (0–1). |
 | **Dilate** | Thickness adjustment of the stack layers (-1 to 1). |
+| **Color Swaps** | Optional list of `Source` → `Target` color pairs, applied to characters inside `<color>` rich-text tags (see below). |
 
 The **main text** sits on top of all stacks and has its own **MainTextSoftness** and **MainTextDilate** controls. Toggle **Show Main Text** off to hide the front layer and display only the stacks.
+
+### Color Swaps
+
+By default every character gets the same stack colors, even when the main text is recolored with rich-text tags. Color Swaps let tagged words carry their own stack colors: when a character is wrapped in a `<color=#RRGGBB>` tag whose RGB matches a swap's `Source`, that stack's layers use the swap's `Target` color (including its alpha) instead of the gradient. The main text keeps the tag color.
+
+```
+Text:           Collect <color=#FFD200>50 coins</color>!
+Stack 0 swaps:  Source #FFD200 → Target #8A5A00
+```
+
+"50 coins" gets a dark-gold stack while the rest of the text uses the stack gradient. Swaps are per stack, so each stack can recolor differently. They need **Rich Text** enabled on the text and match unquoted hex colors only (`<color=#FFD200>`, `<color=#FFD200FF>`); quoted or named colors (`<color="#FFD200">`, `<color=red>`) are not matched.
 
 ---
 
@@ -135,6 +151,14 @@ When the module is present and enabled on the same GameObject as `StackedText`, 
 
 ---
 
+## Material Inspector (`TMP_SDF_DilateShaderGUI`)
+
+The `Distance Field Dilate` shader declares `CustomEditor "TMPro.EditorUtilities.TMP_SDF_DilateShaderGUI"`; the editor script in `Scripts/Editor` provides it. It is adapted from TextMesh Pro's SDF shader GUI and shows the **Face**, **Outline**, **Underlay**, **Lighting** (Bevel, Local Lighting, Bump Map, Environment Map), **Glow** and **Debug Settings** panels.
+
+There are no face dilate or softness sliders on the material: StackedText writes those per layer (UV3), so set them on each stack instead.
+
+---
+
 ## API
 
 ```csharp
@@ -143,6 +167,9 @@ stackedText.SetStacks(new List<StackedText.StackConfig>
 {
     StackedText.StackConfig.CreateDefault()
 });
+
+// Changed a stack's Gradient or ColorSwaps list in place? Force a rebuild on the next canvas update.
+stackedText.MarkDirty();
 ```
 
 ---
@@ -156,9 +183,9 @@ Each frame, for each TMP material slot, the pipeline runs:
 1. **Curve** offsets are computed and added to the source vertices.
 2. **Rotate** offsets are applied; each vertex's character-local Z axis (post-rotation) is also captured for use by stack-depth pushes.
 3. **Scale** is applied **last**, against the post-curve / post-rotate vertices — this ensures uniform multiplicative behaviour (scale = 0 always collapses to the pivot, regardless of which other modules are active).
-4. For each stack (the regular `Stacks` list followed by any active `StackedTextAnimatableStacks` slots), the source mesh vertices are duplicated with per-layer color and offset, plus the optional `StackDepths[s]` value pushed along each vertex's local Z axis.
+4. For each stack (the regular `Stacks` list followed by any active `StackedTextAnimatableStacks` slots), the source mesh vertices are duplicated with per-layer color and offset, plus the optional `StackDepths[s]` value pushed along each vertex's local Z axis. Characters inside `<color>` tags that match one of the stack's **Color Swaps** take the swap's target color instead of the gradient.
 5. Per-layer `softness` and `dilate` are packed into UV3 for the shader.
-6. The final mesh is assigned directly to the `CanvasRenderer`, bypassing TMP's default rendering without modifying the original text data.
+6. The final mesh is assigned directly to the `CanvasRenderer`, bypassing TMP's default rendering without modifying the original text data. One stacked mesh is cached per TMP source mesh and rebuilt only when TMP regenerates the text or a StackedText / module property changes.
 
 The whole effect renders as a **single draw call**, making it mobile-friendly. Sprite (icon) slots are automatically detected and excluded from the stack-layer build so `<sprite=...>` icons render as single un-shadowed quads alongside stacked text.
 

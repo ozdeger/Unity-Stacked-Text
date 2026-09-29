@@ -38,15 +38,17 @@ public class StackedText : MonoBehaviour
     [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its 8 fixed stack slots are appended to Stacks each frame so their fields can be keyframed by Animation clips.")]
     [SerializeField] private StackedTextAnimatableStacks AnimatableStacks;
 
-    // One cached mesh per TMP material slot (index 0 = primary, index 1+ = fallback sub-meshes
-    // used by Arabic / RTL glyphs and any other character that is not in the primary font atlas).
-    private readonly List<Mesh> _cachedMeshes = new();
+    // Our generated stacked mesh keyed by the TMP source mesh it replaces (slot 0 = primary,
+    // others = fallback sub-meshes used by Arabic / RTL glyphs and any other character that is
+    // not in the primary font atlas). Keyed by mesh instance instead of material slot index so
+    // overwrite detection stays valid when TMP reorders slots or a renderer is cleared to null.
+    private readonly Dictionary<Mesh, Mesh> _stackedMeshBySourceMesh = new();
+    private readonly List<Mesh> _deadSourceMeshes = new();
     private readonly List<TMP_SubMeshUI> _subMeshUIs = new();
     // Per-material flag: true if the slot only renders TMP sprites (e.g. <sprite=3> icons).
     // Sprite slots are deliberately left untouched by the stacking pass so icons render as
     // single, un-shadowed quads alongside stacked text.
     private readonly List<bool> _isSpriteSlot = new();
-    private int _lastMaterialCount;
     // Tracks whether we've already warned about a fallback (e.g. Arabic) sub-mesh whose material
     // doesn't use the Distance Field Dilate shader. Without that shader, the per-stack softness
     // and dilate values written into UV3 are ignored — offset + color stacking still works, but
@@ -67,12 +69,12 @@ public class StackedText : MonoBehaviour
     private readonly List<float> _charScales = new();
     private readonly List<Vector3> _sourceVerts = new();
     private readonly List<Color32> _sourceColors = new();
-    private readonly List<Vector2> _sourceUVs = new();
+    private readonly List<Vector4> _sourceUVs = new();
     private readonly List<Vector2> _sourceUV2s = new();
     private readonly List<int> _sourceTris = new();
     private readonly List<Vector3> _outVerts = new();
     private readonly List<Color32> _outColors = new();
-    private readonly List<Vector2> _outUVs = new();
+    private readonly List<Vector4> _outUVs = new();
     private readonly List<Vector2> _outUV2s = new();
     private readonly List<Vector2> _outUV3s = new();
     private readonly List<int> _outTris = new();
@@ -97,6 +99,15 @@ public class StackedText : MonoBehaviour
     // Working stack list: Stacks + (AnimatableStacks slots if module is active). Rebuilt each
     // frame so animation-driven changes to the module's fields propagate without extra hooks.
     private readonly List<StackConfig> _workingStacks = new();
+
+    // ColorSwap state: parsed once per frame from Text.text into _charHasTag/_charTagColors, then
+    // projected per-material into _vertexHasTagColor/_vertexTagColors so stack layers can swap
+    // gradient colors for characters wrapped in <color=...> rich-text tags.
+    private readonly List<Color32> _vertexTagColors = new();
+    private readonly List<bool> _vertexHasTagColor = new();
+    private readonly List<Color32> _charTagColors = new();
+    private readonly List<bool> _charHasTag = new();
+    private readonly Stack<Color32> _colorTagStack = new();
 
     #endregion
 
@@ -283,23 +294,26 @@ public class StackedText : MonoBehaviour
 
     private bool AnyCachedMeshOverwritten()
     {
-        // If TMP rebuilt and re-assigned its own mesh on any slot we manage (including sprite
-        // slots, since we now push curved/scaled icon geometry there too), our cached mesh is
-        // no longer on screen and we must regenerate.
+        // If TMP rebuilt and pushed its own source mesh back onto a renderer we manage (including
+        // sprite slots, since we now push curved/scaled icon geometry there too), our stacked mesh
+        // is no longer on screen and we must regenerate. Only a renderer showing a known TMP
+        // source mesh counts as overwritten: null (an empty slot we cleared ourselves) or a
+        // foreign mesh owned by another system must not trigger a rebuild, otherwise we'd
+        // regenerate every frame fighting state we don't own.
         var textInfo = Text.textInfo;
-        if (textInfo == null || _cachedMeshes.Count == 0)
+        if (textInfo == null || _stackedMeshBySourceMesh.Count == 0)
             return false;
 
-        int slotsToCheck = Mathf.Min(Mathf.Min(_lastMaterialCount, textInfo.materialCount), _cachedMeshes.Count);
+        int slotsToCheck = Mathf.Min(textInfo.materialCount, textInfo.meshInfo.Length);
         for (int m = 0; m < slotsToCheck; m++)
         {
             var renderer = GetCanvasRendererForMaterial(m, textInfo);
             if (renderer == null) continue;
 
-            var cached = _cachedMeshes[m];
-            if (cached == null) continue;
+            var currentMesh = renderer.GetMesh();
+            if (currentMesh == null) continue;
 
-            if (renderer.GetMesh() != cached)
+            if (_stackedMeshBySourceMesh.ContainsKey(currentMesh))
                 return true;
         }
         return false;
@@ -386,9 +400,9 @@ public class StackedText : MonoBehaviour
         if (materialCount <= 0)
             return;
 
-        // Make sure we have one cached output mesh per material slot, and a fresh list of
+        // Drop cache entries whose TMP source mesh was destroyed, and grab a fresh list of
         // TMP_SubMeshUI children to push the stacked geometry into.
-        EnsureCachedMeshCapacity(materialCount);
+        PruneDeadSourceMeshes();
         RefreshSubMeshUIs();
 
         // Identify which material slots render sprites (e.g. <sprite=3> icons) so we can skip
@@ -408,6 +422,10 @@ public class StackedText : MonoBehaviour
         GetNormalizedSoftnessAndDilate(MainTextDilate, MainTextSoftness, out float mainDilate, out float mainSoftness);
         var mainUV3 = new Vector2(mainDilate, mainSoftness);
         Color32 mainFallbackColor = _workingStacks.Count > 0 ? (Color32)_workingStacks[0].Color.Evaluate(0) : default;
+
+        bool hasAnySwaps = HasAnyColorSwaps();
+        if (hasAnySwaps)
+            ParseCharColorTags();
 
         // --- BUILD ONE STACKED MESH PER MATERIAL ---
         // meshInfo[0] is the primary text mesh; meshInfo[1..N] are TMP fallback sub-meshes.
@@ -509,6 +527,9 @@ public class StackedText : MonoBehaviour
             // shadow copies. The slot still gets the "main layer" pass below.
             if (!isSpriteSlotHere)
             {
+                if (hasAnySwaps)
+                    BuildVertexColorTagMap(textInfo, m, sourceVCount);
+
                 for (int s = _workingStacks.Count - 1; s >= 0; s--)
                 {
                     var stackConfig = _workingStacks[s];
@@ -525,6 +546,7 @@ public class StackedText : MonoBehaviour
                     float stackDepth = IsRotateActive() ? Rotate.GetStackDepth(s) : 0f;
                     bool applyLocalDepth = stackDepth != 0f && _localZAxes.Count >= sourceVCount;
                     bool applyCharScale = _charScales.Count >= sourceVCount;
+                    bool stackHasSwaps = hasAnySwaps && stackConfig.ColorSwaps != null && stackConfig.ColorSwaps.Count > 0;
                     for (int i = layerCount; i >= 1; i--)
                     {
                         float t = layerCount == 1 ? 1 : (i - 1) / ((float)layerCount - 1);
@@ -543,7 +565,12 @@ public class StackedText : MonoBehaviour
                             _outUVs.Add(_sourceUVs[v]);
                             _outUV2s.Add(_sourceUV2s[v]);
                             _outUV3s.Add(uv3);
-                            _outColors.Add(layerColor);
+
+                            Color32 vertexColor = layerColor;
+                            if (stackHasSwaps && _vertexHasTagColor[v] &&
+                                TryGetSwappedColor(stackConfig.ColorSwaps, _vertexTagColors[v], out var swappedColor))
+                                vertexColor = swappedColor;
+                            _outColors.Add(vertexColor);
                         }
 
                         for (int tIdx = 0; tIdx < sourceTriCount; tIdx++)
@@ -571,7 +598,7 @@ public class StackedText : MonoBehaviour
                 _outTris.Add(_sourceTris[tIdx] + mainTextVertStart);
 
             // --- ASSIGN TO MESH ---
-            var cachedMesh = _cachedMeshes[m];
+            var cachedMesh = GetOrCreateStackedMesh(sourceMesh, m);
             cachedMesh.Clear();
             cachedMesh.SetVertices(_outVerts);
             cachedMesh.SetColors(_outColors);
@@ -606,18 +633,44 @@ public class StackedText : MonoBehaviour
             }
         }
 
-        _lastMaterialCount = materialCount;
         SaveLastUsedProperties();
     }
 
-    private void EnsureCachedMeshCapacity(int materialCount)
+    private Mesh GetOrCreateStackedMesh(Mesh sourceMesh, int materialIndex)
     {
-        while (_cachedMeshes.Count < materialCount)
+        if (_stackedMeshBySourceMesh.TryGetValue(sourceMesh, out var stackedMesh) && stackedMesh != null)
+            return stackedMesh;
+
+        stackedMesh = new Mesh { name = $"StackedText (slot {materialIndex})" };
+        stackedMesh.MarkDynamic();
+        _stackedMeshBySourceMesh[sourceMesh] = stackedMesh;
+        return stackedMesh;
+    }
+
+    private void PruneDeadSourceMeshes()
+    {
+        // TMP can destroy and recreate its meshes (font/material swaps, sub-mesh cleanup); drop
+        // those entries and destroy our paired mesh so the cache doesn't accumulate orphans.
+        if (_stackedMeshBySourceMesh.Count == 0)
+            return;
+
+        _deadSourceMeshes.Clear();
+        foreach (var (sourceMesh, stackedMesh) in _stackedMeshBySourceMesh)
         {
-            var newMesh = new Mesh { name = $"StackedText (slot {_cachedMeshes.Count})" };
-            newMesh.MarkDynamic();
-            _cachedMeshes.Add(newMesh);
+            if (sourceMesh != null)
+                continue;
+
+            _deadSourceMeshes.Add(sourceMesh);
+            if (stackedMesh == null)
+                continue;
+            if (Application.isPlaying)
+                Destroy(stackedMesh);
+            else
+                DestroyImmediate(stackedMesh);
         }
+
+        for (int i = 0; i < _deadSourceMeshes.Count; i++)
+            _stackedMeshBySourceMesh.Remove(_deadSourceMeshes[i]);
     }
 
     private static void ClearAndEnsureCapacity<T>(List<T> list, int capacity)
@@ -731,6 +784,174 @@ public class StackedText : MonoBehaviour
         return totalDilate + totalSoftness > 0.001f;
     }
 
+    private bool HasAnyColorSwaps()
+    {
+        for (int i = 0; i < _workingStacks.Count; i++)
+        {
+            var stack = _workingStacks[i];
+            if (!stack.Enabled)
+                continue;
+            if (stack.ColorSwaps != null && stack.ColorSwaps.Count > 0)
+                return true;
+        }
+        return false;
+    }
+
+    private void ParseCharColorTags()
+    {
+        _charTagColors.Clear();
+        _charHasTag.Clear();
+        _colorTagStack.Clear();
+
+        if (!Text.richText)
+            return;
+
+        var rawText = Text.text;
+        int rawLength = rawText.Length;
+        int pos = 0;
+        while (pos < rawLength)
+        {
+            if (rawText[pos] == '<')
+            {
+                if (TryParseColorOpenTag(rawText, pos, out var tagColor, out int tagEnd))
+                {
+                    _colorTagStack.Push(tagColor);
+                    pos = tagEnd + 1;
+                    continue;
+                }
+
+                if (IsColorCloseTag(rawText, pos, out int closeEnd))
+                {
+                    if (_colorTagStack.Count > 0)
+                        _colorTagStack.Pop();
+                    pos = closeEnd + 1;
+                    continue;
+                }
+
+                int closeBracket = rawText.IndexOf('>', pos + 1);
+                if (closeBracket >= 0)
+                {
+                    pos = closeBracket + 1;
+                    continue;
+                }
+            }
+
+            bool hasTag = _colorTagStack.Count > 0;
+            _charHasTag.Add(hasTag);
+            _charTagColors.Add(hasTag ? _colorTagStack.Peek() : default);
+            pos++;
+        }
+    }
+
+    private void BuildVertexColorTagMap(TMP_TextInfo textInfo, int materialIndex, int sourceVertexCount)
+    {
+        ClearAndFillDefault(_vertexTagColors, sourceVertexCount);
+        ClearAndFillDefault(_vertexHasTagColor, sourceVertexCount);
+
+        int charCount = textInfo.characterCount;
+        for (int i = 0; i < charCount; i++)
+        {
+            var charInfo = textInfo.characterInfo[i];
+            if (!charInfo.isVisible)
+                continue;
+            if (charInfo.materialReferenceIndex != materialIndex)
+                continue;
+            if (i >= _charHasTag.Count || !_charHasTag[i])
+                continue;
+
+            int vi = charInfo.vertexIndex;
+            if (vi + 3 >= sourceVertexCount)
+                continue;
+
+            var tagColor = _charTagColors[i];
+            for (int j = 0; j < 4; j++)
+            {
+                _vertexTagColors[vi + j] = tagColor;
+                _vertexHasTagColor[vi + j] = true;
+            }
+        }
+    }
+
+    private static bool TryParseColorOpenTag(string text, int startPos, out Color32 color, out int tagEndPos)
+    {
+        color = default;
+        tagEndPos = startPos;
+
+        int remaining = text.Length - startPos;
+        if (remaining < 10)
+            return false;
+
+        if (text[startPos + 1] != 'c' || text[startPos + 2] != 'o' || text[startPos + 3] != 'l' ||
+            text[startPos + 4] != 'o' || text[startPos + 5] != 'r' || text[startPos + 6] != '=')
+            return false;
+
+        int closePos = text.IndexOf('>', startPos + 7);
+        if (closePos < 0)
+            return false;
+
+        int valueStart = startPos + 7;
+        int valueLength = closePos - valueStart;
+        if (valueLength <= 0)
+            return false;
+
+        var colorString = text.Substring(valueStart, valueLength);
+        if (colorString[0] != '#')
+            colorString = "#" + colorString;
+
+        if (!ColorUtility.TryParseHtmlString(colorString, out var parsed))
+            return false;
+
+        color = parsed;
+        tagEndPos = closePos;
+        return true;
+    }
+
+    private static bool IsColorCloseTag(string text, int startPos, out int tagEndPos)
+    {
+        tagEndPos = startPos;
+
+        int remaining = text.Length - startPos;
+        if (remaining < 8)
+            return false;
+
+        if (text[startPos + 1] == '/' &&
+            text[startPos + 2] == 'c' &&
+            text[startPos + 3] == 'o' &&
+            text[startPos + 4] == 'l' &&
+            text[startPos + 5] == 'o' &&
+            text[startPos + 6] == 'r' &&
+            text[startPos + 7] == '>')
+        {
+            tagEndPos = startPos + 7;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryGetSwappedColor(List<ColorSwapPair> swaps, Color32 source, out Color32 target)
+    {
+        for (int i = 0; i < swaps.Count; i++)
+        {
+            var swap = swaps[i];
+            if (swap.Source.r == source.r && swap.Source.g == source.g && swap.Source.b == source.b)
+            {
+                target = swap.Target;
+                return true;
+            }
+        }
+        target = default;
+        return false;
+    }
+
+    private static void ClearAndFillDefault<T>(List<T> list, int count)
+    {
+        list.Clear();
+        if (list.Capacity < count)
+            list.Capacity = count;
+        for (int i = 0; i < count; i++)
+            list.Add(default);
+    }
+
     #endregion
 
     #region Public API
@@ -811,6 +1032,7 @@ public class StackedText : MonoBehaviour
         public Vector2 EndOffset;
         [Range(0, 1)] public float Softness;
         [Range(-1f, 1f)] public float Dilate;
+        public List<ColorSwapPair> ColorSwaps;
 
         public static StackConfig CreateDefault()
         {
@@ -832,6 +1054,7 @@ public class StackedText : MonoBehaviour
                     },
                 },
                 EndOffset = new Vector2(2f, -2f),
+                ColorSwaps = new(),
             };
         }
 
@@ -853,8 +1076,34 @@ public class StackedText : MonoBehaviour
                 !Mathf.Approximately(Softness, other.Softness) ||
                 StartOffset != other.StartOffset ||
                 EndOffset != other.EndOffset ||
-                !Color.Equals(other.Color);
+                !Color.Equals(other.Color) ||
+                HasColorSwapsChanged(other.ColorSwaps);
         }
+
+        private bool HasColorSwapsChanged(List<ColorSwapPair> other)
+        {
+            int countA = ColorSwaps?.Count ?? 0;
+            int countB = other?.Count ?? 0;
+            if (countA != countB)
+                return true;
+
+            for (int i = 0; i < countA; i++)
+            {
+                var a = ColorSwaps[i];
+                var b = other[i];
+                if (a.Source.r != b.Source.r || a.Source.g != b.Source.g || a.Source.b != b.Source.b ||
+                    a.Target.r != b.Target.r || a.Target.g != b.Target.g || a.Target.b != b.Target.b)
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    [Serializable]
+    public struct ColorSwapPair
+    {
+        public Color32 Source;
+        public Color32 Target;
     }
 
     #endregion
