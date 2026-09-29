@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8128789333047774571}
   - component: {fileID: 6339587043270411140}
   - component: {fileID: 4764352843556785110}
+  - component: {fileID: 2894361476559079836}
   m_Layer: 0
   m_Name: StackedText_RuntimePresets
   m_TagString: Untagged
@@ -745,3 +746,26 @@ MonoBehaviour:
       Dilate: 0.6
       ColorSwaps: []
   Interval: 1.5
+--- !u!223 &2894361476559079836
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 29
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0

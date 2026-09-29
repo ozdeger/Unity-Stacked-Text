@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6505281256083927873}
   - component: {fileID: 62218274760351604}
   - component: {fileID: 1454775654616966844}
+  - component: {fileID: 9020872147503944235}
   m_Layer: 0
   m_Name: StackedText_TheQueen
   m_TagString: Untagged
@@ -416,3 +417,26 @@ MonoBehaviour:
   Scale: {fileID: 0}
   Rotate: {fileID: 0}
   AnimatableStacks: {fileID: 0}
+--- !u!223 &9020872147503944235
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6752591933479962735}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 29
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0

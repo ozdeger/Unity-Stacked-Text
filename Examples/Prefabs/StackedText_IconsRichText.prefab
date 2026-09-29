@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 28066638231017538}
   - component: {fileID: 8386531417178690910}
   - component: {fileID: 9212965603470511702}
+  - component: {fileID: 3810419228750595918}
   m_Layer: 0
   m_Name: StackedText_IconsRichText
   m_TagString: Untagged
@@ -268,3 +269,26 @@ MonoBehaviour:
   Scale: {fileID: 0}
   Rotate: {fileID: 0}
   AnimatableStacks: {fileID: 0}
+--- !u!223 &3810419228750595918
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 943210883387799643}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 29
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0

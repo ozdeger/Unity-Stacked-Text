@@ -74,7 +74,7 @@ Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curv
 
 ## Installation
 
-- **Unity package** — download [`StackedText_v1.4.0.unitypackage`](StackedText_v1.4.0.unitypackage) and import it with **Assets › Import Package › Custom Package…**. Everything goes to `Assets/Unity-Stacked-Text`.
+- **Unity package** — download [`StackedText_v1.4.1.unitypackage`](StackedText_v1.4.1.unitypackage) and import it with **Assets › Import Package › Custom Package…**. Everything goes to `Assets/Unity-Stacked-Text`.
 - **Git** — clone the repository (or add it as a submodule) anywhere under `Assets/`. The repository includes the `.meta` files, so asset references match the package.
 
 ---
@@ -94,6 +94,8 @@ Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curv
 
 The `StackedText` component auto-collects all sibling modules on enable and on validate; you usually don't need to wire references manually.
 
+> **Canvas shader channel** — StackedText stores each layer's dilate and softness in UV3, so the canvas it renders under needs **Additional Shader Channels › TexCoord3**. StackedText enables it on its canvas when the component is enabled. If the text only gets parented under a canvas afterwards (for example Prefab Mode's temporary environment canvas), turn TexCoord3 on for that canvas, or give the prefab its own Canvas as the example prefabs do. Without it the layers render blurred and blocky.
+
 ---
 
 ## Showcase Scene
@@ -111,6 +113,7 @@ Examples/
 
 - The **Time Scale** control in the top-right corner (a slider plus a text field for exact values, up to 10×) slows down, freezes or speeds up every animation in the scene. It adds the UI input module that matches the project's input handling (Input Manager or Input System package) at runtime.
 - The canvas is **Screen Space – Camera** with a perspective camera, so the Rotate example's depth reads as 3D.
+- Each example prefab has its own **Canvas** with the TexCoord3 shader channel enabled, so it renders correctly in Prefab Mode and when nested inside any canvas.
 - The cards use three fonts: Lilita One, Abril Fatface, and Red Hat Display Black (the font of the original screenshots, used for "The Queen" and "Grand Prize").
 - Card descriptions use `LiberationSans SDF` and the icon uses the default `EmojiOne` sprite asset, both from **TMP Essential Resources**.
 - The example assets were authored in Unity 6. The core scripts and shader still support 2021.3+.

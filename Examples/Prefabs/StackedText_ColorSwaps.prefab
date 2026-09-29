@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1451398010740402373}
   - component: {fileID: 3778547544904693556}
   - component: {fileID: 4887238380550719510}
+  - component: {fileID: 3350340160336948672}
   m_Layer: 0
   m_Name: StackedText_ColorSwaps
   m_TagString: Untagged
@@ -324,3 +325,26 @@ MonoBehaviour:
   - Find <color=#6BE1FF>3 gems</color>
   - <color=#FFD84D>Gold</color> <color=#FF6B6B>Ruby</color> <color=#6BE1FF>Ice</color>
   Interval: 1.6
+--- !u!223 &3350340160336948672
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6233667318933440608}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 29
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
