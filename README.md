@@ -4,7 +4,7 @@
 
 <p align="center"><b>Stylized layered text effects for TextMeshPro in Unity</b></p>
 
-StackedText is a lightweight Unity component that generates stacked, multi-layered text with customizable colors, offsets, softness, and dilation — all driven by a single `TMP_Text` component and rendered in a single draw call. Optional sibling modules add per-character bending, scaling, Y-axis rotation, and animation-clip-friendly stack slots. Perfect for game titles, UI headers, and stylized labels.
+StackedText is a lightweight Unity component that generates stacked, multi-layered text with customizable colors, offsets, softness, and dilation — all driven by a single `TMP_Text` component and rendered in a single draw call. Optional sibling modules add per-character bending, scaling, Y-axis rotation, animation-clip-friendly stack slots, an animated shine, and reusable style assets. Perfect for game titles, UI headers, and stylized labels.
 
 Everything in the GIF above ships as a ready-to-use prefab in the included [showcase scene](#showcase-scene).
 
@@ -15,7 +15,7 @@ Everything in the GIF above ships as a ready-to-use prefab in the included [show
 Reading the GIF left to right, top to bottom:
 
 1. **Multi-Color Depth** (`StackedText_TheQueen`) — A complete game-title look built from seven stacks. From front to back: a cream highlight along the top edge, the orange face depth, a thin navy rim, the blue outline with a darker bottom edge, a light-blue rim, a navy back plate and a soft shadow. Each stack is just a color, an offset and a dilate value.
-2. **Gradient Layers** (`StackedText_GradientLayers`) — One stack with **Layer Count** 6 and offsets that step diagonally down and to the right. Each sub-layer samples the stack's `Gradient`, from warm gold near the letters to dark brown at the back, for a smooth 3D extrusion.
+2. **StackedTextShine** (`StackedText_Shiny`) — A gold "Shiny" with a dark outline, a five-layer depth and a soft shadow. `StackedTextShine` sweeps a soft, diagonal highlight band across the letters every 2.5 seconds. The front brown outline stack has a **Shine** of 1, so the band passes over it too; the depth and shadow stacks keep a Shine of 0, so they stay dark.
 3. **Softness & Dilate** (`StackedText_SoftnessDilate`) — "NEON" is three stacks with no offset and growing dilate and softness: a pink core, a pink bloom and a wide purple haze. Dilate grows a stack's shape and softness blurs its edge, which is all a glow needs.
 4. **StackedTextCurve** (`StackedText_Curve`) — The text bends along an arch. An Animator keyframes **Curve Scale** from positive to negative, so it flexes from a frown to a smile. Letters tilt with the curve and every stack bends with them.
 5. **StackedTextScale** (`StackedText_ScaleWave`) — Each letter's scale is sampled from a looping wave curve. Keyframing **Phase** slides the wave through the text, so letters swell and shrink in turn, and their stacks scale with them.
@@ -24,10 +24,12 @@ Reading the GIF left to right, top to bottom:
 8. **Color Swaps** (`StackedText_ColorSwaps`) — Words in `<color=#hex>` tags get their own stack colors: each stack maps the gold, ruby and ice tag colors to matching dark outline and depth shades. A small script cycles the message at runtime, and the swaps follow the tags.
 9. **Show Main Text: Off** (`StackedText_ShowMainTextOff`) — Only the stacks render, and the face takes the first stack's color. A cream face with coral and blue offset copies gives "Retro" a misregistered-print look.
 10. **Icons & Rich Text** (`StackedText_IconsRichText`) — `<sprite>` icons render as single, un-stacked quads next to the stacked text, while italic (and bold or underlined) text stacks like any other glyph.
-11. **Runtime API** (`StackedText_RuntimePresets`) — A script calls `SetStacks()` every 1.5 seconds, swapping the whole stack setup and fill gradient between Candy, Gold, Ice and Lava presets.
+11. **Styles & Shine** (`StackedText_RuntimeStyles`) — Four `StackedTextStyle` assets (Candy, Gold, Ice and Lava in `Examples/Styles`) are swapped every 2 seconds with `SetStyle()`. Each style sets the fill gradient and the stacks; Gold and Ice also turn on a `StackedTextShine` sweep, which brightens the letters but leaves the stacks untouched.
 12. **Flip, Curve & Scale** (`StackedText_FlipCurveScale`) — The modules combined into a title reveal. Scale and Rotate share one keyframed **Phase**, so a reveal front sweeps across "Grand Prize": each letter pops in from zero with a slight overshoot and turns from edge-on to face-on, while Curve holds the line on an arch. It loops every 3 seconds.
 
 Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curve arch with a slow Scale "breathing" wave. The **Time Scale** control in the corner slows down, freezes or speeds up every animation, so you can study each effect frame by frame.
+
+`Examples/Prefabs` also keeps **Gradient Layers** (`StackedText_GradientLayers`), which no longer has a card: "Classic" uses one stack with **Layer Count** 6 and offsets that step diagonally down and to the right, each sub-layer sampling the stack's `Gradient` from warm gold near the letters to dark brown at the back for a smooth 3D extrusion.
 
 ### More examples
 
@@ -50,7 +52,9 @@ Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curv
 - **Configurable Offsets** — Set start and end offsets per stack to control the direction and depth of the effect.
 - **Softness & Dilation** — Fine-tune the edge softness and thickness of each layer independently.
 - **Rich-Text Color Swaps** — Give `<color=#hex>` tagged words their own stack colors with per-stack Source → Target color pairs.
-- **Optional modules** — Mix and match `StackedTextCurve` (arc-bend), `StackedTextScale` (per-character scale), `StackedTextRotate` (per-character Y-axis rotation + stack depth), and `StackedTextAnimatableStacks` (8 named stack slots that can be keyframed by Animation clips). All modules are sibling components — add the ones you need.
+- **Style Assets** — Save a look (face colors, stacks and shine) as a `StackedTextStyle` asset and apply it with `StackedTextStyleApplier`. Its inspector lists every style in the project in a searchable dropdown, so new styles need no code.
+- **Shine** — `StackedTextShine` sweeps an animated highlight band across the letters, and across any stack you give a **Shine** amount. Works under masks and on fallback-font glyphs.
+- **Optional modules** — Mix and match `StackedTextCurve` (arc-bend), `StackedTextScale` (per-character scale), `StackedTextRotate` (per-character Y-axis rotation + stack depth), `StackedTextAnimatableStacks` (8 named stack slots that can be keyframed by Animation clips), `StackedTextShine` (animated highlight) and `StackedTextStyleApplier` (style assets). All modules are sibling components — add the ones you need.
 - **Editor Preview** — Runs in Edit Mode via `[ExecuteInEditMode]`, so you see results instantly without entering Play Mode.
 - **Zero Allocation at Runtime** — Reuses cached lists and meshes to avoid GC pressure during updates.
 - **Automatic Material Setup** — Detects and creates a compatible `Distance Field Dilate` material if one isn't assigned.
@@ -74,7 +78,7 @@ Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curv
 
 ## Installation
 
-- **Unity package** — download [`StackedText_v1.4.1.unitypackage`](StackedText_v1.4.1.unitypackage) and import it with **Assets › Import Package › Custom Package…**. Everything goes to `Assets/Unity-Stacked-Text`.
+- **Unity package** — download [`StackedText_v1.5.0.unitypackage`](StackedText_v1.5.0.unitypackage) and import it with **Assets › Import Package › Custom Package…**. Everything goes to `Assets/Unity-Stacked-Text`.
 - **Git** — clone the repository (or add it as a submodule) anywhere under `Assets/`. The repository includes the `.meta` files, so asset references match the package.
 
 ---
@@ -91,10 +95,12 @@ Around the cards, the **STACKED TEXT** header (`StackedText_Title`) pairs a Curv
    - **StackedTextScale** — scale each character along an `AnimationCurve` sampled by horizontal position.
    - **StackedTextRotate** — rotate each character on its Y axis along a curve, and optionally push individual stacks "behind" along the rotated local Z.
    - **StackedTextAnimatableStacks** — exposes 8 fixed `StackConfig` fields by name so an `Animator` can keyframe them.
+   - **StackedTextShine** — sweeps an animated highlight band across the main text.
+   - **StackedTextStyleApplier** — applies a `StackedTextStyle` asset picked from a dropdown of every style in the project (see [Styles](#styles-stackedtextstyle--stackedtextstyleapplier)).
 
 The `StackedText` component auto-collects all sibling modules on enable and on validate; you usually don't need to wire references manually.
 
-> **Canvas shader channel** — StackedText stores each layer's dilate and softness in UV3, so the canvas it renders under needs **Additional Shader Channels › TexCoord3**. StackedText enables it on its canvas when the component is enabled. If the text only gets parented under a canvas afterwards (for example Prefab Mode's temporary environment canvas), turn TexCoord3 on for that canvas, or give the prefab its own Canvas as the example prefabs do. Without it the layers render blurred and blocky.
+> **Canvas shader channel** — StackedText stores each layer's dilate, softness and shine data in UV3, so the canvas it renders under needs **Additional Shader Channels › TexCoord3**. StackedText enables it on its canvas when the component is enabled. If the text only gets parented under a canvas afterwards (for example Prefab Mode's temporary environment canvas), turn TexCoord3 on for that canvas, or give the prefab its own Canvas as the example prefabs do. Without it the layers render blurred and blocky.
 
 ---
 
@@ -105,10 +111,11 @@ Open `Examples/Scenes/StackedText_Showcase.unity` and press **Play** to see the 
 ```
 Examples/
 ├── Scenes/      StackedText_Showcase.unity
-├── Prefabs/     one prefab per card, plus the StackedText_Title header
+├── Prefabs/     one prefab per card, plus the StackedText_Title header and StackedText_GradientLayers
 ├── Animations/  looping clips and controllers for the animated examples
 ├── Fonts/       Lilita One, Abril Fatface and Red Hat Display Black: .ttf, OFL.txt, SDF font asset and "- StackedText" material
-└── Scripts/     StackedTextShowcaseTextCycler, StackedTextShowcasePresetCycler, StackedTextShowcaseTimeScale (demo helpers)
+├── Styles/      Showcase_Candy, Showcase_Gold, Showcase_Ice and Showcase_Lava style assets used by the Styles & Shine card
+└── Scripts/     StackedTextShowcaseTextCycler, StackedTextShowcaseStyleCycler, StackedTextShowcaseTimeScale (demo helpers)
 ```
 
 - The **Time Scale** control in the top-right corner (a slider plus a text field for exact values, up to 10×) slows down, freezes or speeds up every animation in the scene. It adds the UI input module that matches the project's input handling (Input Manager or Input System package) at runtime.
@@ -136,6 +143,7 @@ Each `StackConfig` entry exposes the following:
 | **End Offset** | Position offset of the last (front-most) sub-layer. |
 | **Softness** | Edge softness of the stack layers (0–1). |
 | **Dilate** | Thickness adjustment of the stack layers (-1 to 1). |
+| **Shine** | How much of the `StackedTextShine` band this stack receives (0–1). 0 by default, so stacks keep their colors; each layer is lit at its own offset position. |
 | **Color Swaps** | Optional list of `Source` → `Target` color pairs, applied to characters inside `<color>` rich-text tags (see below). |
 
 The **main text** sits on top of all stacks and has its own **MainTextSoftness** and **MainTextDilate** controls. Toggle **Show Main Text** off to hide the front layer and display only the stacks.
@@ -202,9 +210,65 @@ When the module is present and enabled on the same GameObject as `StackedText`, 
 
 | Property | Description |
 |---|---|
-| **Stack0 … Stack7** | Eight `StackConfig` slots with the same fields as a regular stack. Each slot's `Enabled`, `LayerCount`, `StartOffset`, `EndOffset`, `Softness`, and `Dilate` can be keyframed; the `Color` gradient is set in the inspector but cannot be animated by clips (intrinsic Unity limitation). |
+| **Stack0 … Stack7** | Eight `StackConfig` slots with the same fields as a regular stack. Each slot's `Enabled`, `LayerCount`, `StartOffset`, `EndOffset`, `Softness`, `Dilate`, and `Shine` can be keyframed; the `Color` gradient is set in the inspector but cannot be animated by clips (intrinsic Unity limitation). |
 
 **Reset behavior** — the first time you add the module to a GameObject, `Reset()` copies up to 8 entries from the sibling `StackedText.Stacks` list into `Stack0`…`Stack7` so you keep your existing setup. Unused slots are seeded as disabled defaults. To avoid double-rendering, clear `StackedText.Stacks` after copying if you want the module to fully take over.
+
+---
+
+## Styles (`StackedTextStyle` + `StackedTextStyleApplier`)
+
+A **style** is an asset that holds a complete look, so the same look can be reused across texts and swapped at runtime. Every style is its own asset: adding a style never needs a code change.
+
+**Creating styles**
+
+- **Create › Stacked Text › Style** in the Project window creates a blank style.
+- **New Style From Text…** on the applier (or **Create Style From Text…** in the `StackedText` component's context menu) saves what the text renders now (its face colors, stacks and shine) as a new style and assigns it.
+- **Duplicate Style…** on the applier copies the assigned style so you can make a variant.
+
+**What a style drives** — each section applies only while its **Override** toggle is on, so a style can, for example, change only the stacks:
+
+| Section | What it drives |
+|---|---|
+| **Face** | The TMP face color and four-corner vertex gradient. The text's own colors are remembered (also across scene saves) and come back when the style is removed or the applier is disabled. A Color Gradient Preset on the text is cleared while the style is applied. |
+| **Stacks** | `StackedText` renders the style's stacks instead of its own **Stacks** list. The component's list is never modified, so editing the style asset updates every text using it. |
+| **Shine** | Turns the sibling `StackedTextShine` on with the style's shine settings, or forces it off. If the GameObject has no `StackedTextShine`, the inspector offers to add one; in Play Mode it is added automatically. |
+
+**The applier inspector**
+
+| Property | Description |
+|---|---|
+| **Style** | A searchable dropdown listing every `StackedTextStyle` asset in the project by name (styles with the same name show their folder), plus **None** (the text's own look) and **Create New Style…**. You can also drag a style asset onto it; the pencil button opens the style in a floating inspector. The field stores a normal asset reference, so renaming or moving a style never breaks it and builds include it automatically. |
+| **References** | `Text`, `StackedText` and `Shine`, auto-collected from the GameObject. |
+
+Below the dropdown the assigned style's settings are shown inline. Editing them changes the style asset, and with it every text that uses the style.
+
+The dropdown is available for your own fields too: `[SerializeField, AssetDropdown] private StackedTextStyle style;` works with any `ScriptableObject` type.
+
+---
+
+## Shine Component (`StackedTextShine`)
+
+Sweeps a soft highlight band across the **main text**. Stacks receive it according to their **Shine** amount (0 by default, so they keep their colors); each stack layer is lit at its own offset position, so the band passes over an outline or extrusion like one light over a 3D object. Glyphs from fallback fonts shine too, as long as their material uses the `Distance Field Dilate` shader. `<sprite>` icons never shine. The component requires `StackedText` on the same GameObject; the `StackedText_Shiny` example prefab is a ready-made setup.
+
+| Property | Description |
+|---|---|
+| **Width** | Width of the band as a fraction of the text block. |
+| **Rotation** | Direction the band travels, in degrees: `0` = left to right, `90` = bottom to top. The band itself is perpendicular to it, so `-60` gives a `/` band sweeping to the right. |
+| **Softness** | Edge softness of the band. |
+| **Brightness** | Strength of the highlight. |
+| **Gloss** | `0` = plain white highlight, `1` = highlight tinted by the face color for a metallic look. |
+| **Color** | Multiplies the highlight color. |
+| **Duration** | Seconds one sweep takes. |
+| **Loop Delay** | Seconds between two sweeps. |
+| **Play On Enable** | Start sweeping when the component is enabled. Turn off to start it from code with `Play()`. |
+| **Loop** | Repeat the sweep. Turn off for a single sweep per `Play()`. |
+| **Use Unscaled Time** | Keep shining while `Time.timeScale` is 0 (paused menus). |
+| **Preview In Edit Mode** | Animate the shine in Edit Mode. When off, the band rests in the middle of the text so its look can still be tuned. |
+
+The settings fields can be keyframed by Animation clips.
+
+**Rendering** — a shining text renders with its own copies of its materials. They are created at runtime, never saved, and set directly on the text's `CanvasRenderer`s, so `fontSharedMaterial` is never modified and Mask / RectMask2D keep working. Because of the copies, a shining text does not batch with other texts that share its material; the text itself still renders in one draw call.
 
 ---
 
@@ -212,7 +276,7 @@ When the module is present and enabled on the same GameObject as `StackedText`, 
 
 The `Distance Field Dilate` shader declares `CustomEditor "TMPro.EditorUtilities.TMP_SDF_DilateShaderGUI"`; the editor script in `Scripts/Editor` provides it. It is adapted from TextMesh Pro's SDF shader GUI and shows the **Face**, **Outline**, **Underlay**, **Lighting** (Bevel, Local Lighting, Bump Map, Environment Map), **Glow** and **Debug Settings** panels.
 
-There are no face dilate or softness sliders on the material: StackedText writes those per layer (UV3), so set them on each stack instead.
+There are no face dilate or softness sliders on the material: StackedText writes those per layer (UV3), so set them on each stack instead. The `_Shine*` properties are driven per text by `StackedTextShine` and are not shown either.
 
 ---
 
@@ -227,6 +291,18 @@ stackedText.SetStacks(new List<StackedText.StackConfig>
 
 // Changed a stack's Gradient or ColorSwaps list in place? Force a rebuild on the next canvas update.
 stackedText.MarkDirty();
+
+// Apply a style asset, or go back to the text's own look
+[SerializeField] private StackedTextStyle seasonPassStyle;
+styleApplier.SetStyle(seasonPassStyle);
+styleApplier.ClearStyle();
+
+// Edited a style's fields from code? Let every text using it re-apply it.
+seasonPassStyle.NotifyChanged();
+
+// Shine: start a sweep (e.g. with Play On Enable and Loop off for a one-shot), or hide it
+shine.Play();
+shine.Stop();
 ```
 
 ---
@@ -240,8 +316,8 @@ Each frame, for each TMP material slot, the pipeline runs:
 1. **Curve** offsets are computed and added to the source vertices.
 2. **Rotate** offsets are applied; each vertex's character-local Z axis (post-rotation) is also captured for use by stack-depth pushes.
 3. **Scale** is applied **last**, against the post-curve / post-rotate vertices — this ensures uniform multiplicative behaviour (scale = 0 always collapses to the pivot, regardless of which other modules are active).
-4. For each stack (the regular `Stacks` list followed by any active `StackedTextAnimatableStacks` slots), the source mesh vertices are duplicated with per-layer color and offset, plus the optional `StackDepths[s]` value pushed along each vertex's local Z axis. Characters inside `<color>` tags that match one of the stack's **Color Swaps** take the swap's target color instead of the gradient.
-5. Per-layer `softness` and `dilate` are packed into UV3 for the shader.
+4. For each stack (the regular `Stacks` list, or the applied style's stacks, followed by any active `StackedTextAnimatableStacks` slots), the source mesh vertices are duplicated with per-layer color and offset, plus the optional `StackDepths[s]` value pushed along each vertex's local Z axis. Characters inside `<color>` tags that match one of the stack's **Color Swaps** take the swap's target color instead of the gradient.
+5. Per-layer `softness` and `dilate` are packed into UV3.xy for the shader. When `StackedTextShine` is active, UV3.zw hold each vertex's position along the shine direction (0–1 across the text block) and the shine amount (1 on the main text, each stack's **Shine** on its layers).
 6. The final mesh is assigned directly to the `CanvasRenderer`, bypassing TMP's default rendering without modifying the original text data. One stacked mesh is cached per TMP source mesh and rebuilt only when TMP regenerates the text or a StackedText / module property changes.
 
 The whole effect renders as a **single draw call**, making it mobile-friendly. Sprite (icon) slots are automatically detected and excluded from the stack-layer build so `<sprite=...>` icons render as single un-shadowed quads alongside stacked text.

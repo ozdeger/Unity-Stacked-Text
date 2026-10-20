@@ -1,0 +1,370 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &706650646512045894
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8854441536243222686}
+  - component: {fileID: 7581418245891286373}
+  - component: {fileID: 8128789333047774571}
+  - component: {fileID: 6339587043270411140}
+  - component: {fileID: 4764352843556785110}
+  - component: {fileID: 2894361476559079836}
+  - component: {fileID: 2365381068967301748}
+  - component: {fileID: 734484144394438600}
+  m_Layer: 0
+  m_Name: StackedText_RuntimeStyles
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &8854441536243222686
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 420, y: 170}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &7581418245891286373
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_CullTransparentMesh: 1
+--- !u!114 &8128789333047774571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: STYLE
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 6045475d45dbe4b16bf530926584072a, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 8f2ad2cf3e2e04897b81424d0a49b6af, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 1
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 0.7607843, b: 0.9019608, a: 1}
+    bottomRight: {r: 1, g: 0.7607843, b: 0.9019608, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: 0
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 84
+  m_fontSizeBase: 84
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 0
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 1
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &6339587043270411140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 357352de9a233df4a9a9cf492268c23b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StackedText
+  Text: {fileID: 8128789333047774571}
+  ShowMainText: 1
+  Stacks:
+  - Enabled: 1
+    LayerCount: 1
+    Color:
+      serializedVersion: 2
+      key0: {r: 1, g: 0.24705882, b: 0.6431373, a: 1}
+      key1: {r: 1, g: 0.24705882, b: 0.6431373, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 0, y: 0}
+    EndOffset: {x: 0, y: 0}
+    Softness: 0
+    Dilate: 0.5
+    ColorSwaps: []
+  - Enabled: 1
+    LayerCount: 4
+    Color:
+      serializedVersion: 2
+      key0: {r: 0.84705883, g: 0.105882354, b: 0.47843137, a: 1}
+      key1: {r: 0.5411765, g: 0.05882353, b: 0.29803923, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 0, y: -2}
+    EndOffset: {x: 0, y: -10}
+    Softness: 0
+    Dilate: 0.5
+    ColorSwaps: []
+  - Enabled: 1
+    LayerCount: 1
+    Color:
+      serializedVersion: 2
+      key0: {r: 0, g: 0, b: 0, a: 0.35}
+      key1: {r: 0, g: 0, b: 0, a: 0.35}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 0, y: -14}
+    EndOffset: {x: 0, y: -14}
+    Softness: 0.4
+    Dilate: 0.55
+    ColorSwaps: []
+  Curve: {fileID: 0}
+  Scale: {fileID: 0}
+  Rotate: {fileID: 0}
+  AnimatableStacks: {fileID: 0}
+  StyleApplier: {fileID: 734484144394438600}
+  Shine: {fileID: 2365381068967301748}
+--- !u!114 &4764352843556785110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825416febded6444190d3ebdf3732f7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StackedTextExamples.StackedTextShowcaseStyleCycler
+  Target: {fileID: 734484144394438600}
+  Styles:
+  - {fileID: 11400000, guid: ef44c4a23b4de4074af6964b7b7da3cb, type: 2}
+  - {fileID: 11400000, guid: ecae24ae43c32456caa054902b455130, type: 2}
+  - {fileID: 11400000, guid: 591caaa1a822c40adb1a0fd4f2c84469, type: 2}
+  - {fileID: 11400000, guid: 1765b096ce56240318e2df40ac10bfdf, type: 2}
+  Interval: 2
+--- !u!223 &2894361476559079836
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 29
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
+--- !u!114 &2365381068967301748
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4a06a26f3a424e0a9151ec2851cc637, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StackedTextShine
+  Settings:
+    Width: 0.25
+    Rotation: 45
+    Softness: 0.569
+    Brightness: 0.268
+    Gloss: 0.7
+    Color: {r: 1, g: 1, b: 1, a: 1}
+    Duration: 2
+    LoopDelay: 3
+  PlayOnEnable: 1
+  Loop: 1
+  UseUnscaledTime: 0
+  PreviewInEditMode: 1
+--- !u!114 &734484144394438600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706650646512045894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c4226609fffd4df8b99a3899f6e9c76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StackedTextStyleApplier
+  Style: {fileID: 11400000, guid: ef44c4a23b4de4074af6964b7b7da3cb, type: 2}
+  Text: {fileID: 8128789333047774571}
+  StackedText: {fileID: 6339587043270411140}
+  Shine: {fileID: 2365381068967301748}
+  _hasFaceSnapshot: 1
+  _unstyledColor: {r: 1, g: 1, b: 1, a: 1}
+  _unstyledEnableVertexGradient: 1
+  _unstyledGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 0.7607843, b: 0.9019608, a: 1}
+    bottomRight: {r: 1, g: 0.7607843, b: 0.9019608, a: 1}
+  _unstyledGradientPreset: {fileID: 0}
+  _hasShineSnapshot: 1
+  _unstyledShineEnabled: 0

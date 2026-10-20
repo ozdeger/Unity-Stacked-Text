@@ -1,0 +1,146 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fec6a9cbda5f41dcaaeebcc583bbeff, type: 3}
+  m_Name: Showcase_Gold
+  m_EditorClassIdentifier: Assembly-CSharp::StackedTextStyle
+  OverrideFace: 1
+  FaceColor: {r: 1, g: 1, b: 1, a: 1}
+  EnableVertexGradient: 1
+  FaceGradient:
+    topLeft: {r: 1, g: 0.9647059, b: 0.78431374, a: 1}
+    topRight: {r: 1, g: 0.9647059, b: 0.78431374, a: 1}
+    bottomLeft: {r: 1, g: 0.7137255, b: 0.15294118, a: 1}
+    bottomRight: {r: 1, g: 0.7137255, b: 0.15294118, a: 1}
+  OverrideStacks: 1
+  Stacks:
+  - Enabled: 1
+    LayerCount: 1
+    Color:
+      serializedVersion: 2
+      key0: {r: 0.47843137, g: 0.24313726, b: 0, a: 1}
+      key1: {r: 0.47843137, g: 0.24313726, b: 0, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 0, y: 0}
+    EndOffset: {x: 0, y: 0}
+    Softness: 0
+    Dilate: 0.45
+    ColorSwaps: []
+  - Enabled: 1
+    LayerCount: 4
+    Color:
+      serializedVersion: 2
+      key0: {r: 0.72156864, g: 0.38431373, b: 0, a: 1}
+      key1: {r: 0.3529412, g: 0.16470589, b: 0, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 1, y: -2}
+    EndOffset: {x: 4, y: -10}
+    Softness: 0
+    Dilate: 0.45
+    ColorSwaps: []
+  - Enabled: 1
+    LayerCount: 1
+    Color:
+      serializedVersion: 2
+      key0: {r: 0, g: 0, b: 0, a: 0.4}
+      key1: {r: 0, g: 0, b: 0, a: 0.4}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    StartOffset: {x: 5, y: -14}
+    EndOffset: {x: 5, y: -14}
+    Softness: 0.4
+    Dilate: 0.5
+    ColorSwaps: []
+  OverrideShine: 1
+  ShineEnabled: 1
+  Shine:
+    Width: 0.12
+    Rotation: -60
+    Softness: 0.15
+    Brightness: 0.6
+    Gloss: 0.5
+    Color: {r: 1, g: 1, b: 1, a: 1}
+    Duration: 0.9
+    LoopDelay: 1.1

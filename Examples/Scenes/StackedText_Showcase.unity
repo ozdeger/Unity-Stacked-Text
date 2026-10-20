@@ -1756,7 +1756,7 @@ GameObject:
   - component: {fileID: 350092601}
   - component: {fileID: 350092600}
   m_Layer: 0
-  m_Name: Card 02 - Gradient Layers
+  m_Name: Card 02 - Shine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2936,7 +2936,7 @@ GameObject:
   - component: {fileID: 671893343}
   - component: {fileID: 671893342}
   m_Layer: 0
-  m_Name: Card 11 - Runtime API
+  m_Name: Card 11 - Styles & Shine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3252,7 +3252,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'SetStacks() swaps whole stack setups at runtime: Candy, Gold, Ice, Lava.'
+  m_text: 'SetStyle() swaps style assets at runtime: Candy, Gold, Ice, Lava. Gold and Ice shine.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3389,7 +3389,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Runtime API
+  m_text: Styles & Shine
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6045475d45dbe4b16bf530926584072a, type: 2}
   m_sharedMaterial: {fileID: 3063319283324657575, guid: 6045475d45dbe4b16bf530926584072a, type: 2}
@@ -4747,98 +4747,98 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1508644611}
     m_Modifications:
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_Pivot.y
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchorMin.x
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchorMin.y
       value: 0.5
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_SizeDelta.x
       value: 420
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_SizeDelta.y
       value: 170
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7005534131913265153, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+    - target: {fileID: 7005534131913265153, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
       propertyPath: m_Name
-      value: StackedText_GradientLayers
+      value: StackedText_Shiny
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
 --- !u!224 &1159469164 stripped
 RectTransform:
-  m_CorrespondingSourceObject: {fileID: 360836579948545455, guid: 67b86ed7693944ec3b3c8f5169640425, type: 3}
+  m_CorrespondingSourceObject: {fileID: 360836579948545455, guid: fb9f971fff17343c2963e9393d35f019, type: 3}
   m_PrefabInstance: {fileID: 1159469163}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1179436972
@@ -6450,7 +6450,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 706650646512045894, guid: e886c22df01044809a7f8d3671b7ec3a, type: 3}
       propertyPath: m_Name
-      value: StackedText_RuntimePresets
+      value: StackedText_RuntimeStyles
       objectReference: {fileID: 0}
     - target: {fileID: 8854441536243222686, guid: e886c22df01044809a7f8d3671b7ec3a, type: 3}
       propertyPath: m_Pivot.x
@@ -7163,7 +7163,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Six sub-layers sample a Gradient to build a smooth 3D extrusion.
+  m_text: A highlight band sweeps over the letters and outline; a Shine of 0 keeps the depth and shadow dark.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -8193,7 +8193,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Gradient Layers
+  m_text: StackedTextShine
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6045475d45dbe4b16bf530926584072a, type: 2}
   m_sharedMaterial: {fileID: 3063319283324657575, guid: 6045475d45dbe4b16bf530926584072a, type: 2}
