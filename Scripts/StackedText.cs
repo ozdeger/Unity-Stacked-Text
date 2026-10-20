@@ -38,6 +38,12 @@ public class StackedText : MonoBehaviour
     [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, its 8 fixed stack slots are appended to Stacks each frame so their fields can be keyframed by Animation clips.")]
     [SerializeField] private StackedTextAnimatableStacks AnimatableStacks;
 
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, the stacks of its style asset are rendered instead of Stacks (which stays unchanged).")]
+    [SerializeField] private StackedTextStyleApplier StyleApplier;
+
+    [Tooltip("Optional sibling component. If assigned (or present on this GameObject) and enabled, each vertex's position along its shine direction is written to UV3 so it can sweep a highlight across the main text.")]
+    [SerializeField] private StackedTextShine Shine;
+
     // Our generated stacked mesh keyed by the TMP source mesh it replaces (slot 0 = primary,
     // others = fallback sub-meshes used by Arabic / RTL glyphs and any other character that is
     // not in the primary font atlas). Keyed by mesh instance instead of material slot index so
@@ -76,7 +82,10 @@ public class StackedText : MonoBehaviour
     private readonly List<Color32> _outColors = new();
     private readonly List<Vector4> _outUVs = new();
     private readonly List<Vector2> _outUV2s = new();
-    private readonly List<Vector2> _outUV3s = new();
+    // UV3 per vertex: x = dilate, y = softness, z = position along the shine direction
+    // (0..1 across the text block), w = shine amount (1 on the main text, each stack's Shine on
+    // its layers).
+    private readonly List<Vector4> _outUV3s = new();
     private readonly List<int> _outTris = new();
     private bool _lastShowMainText;
     private float _lastMainTextDilate;
@@ -96,8 +105,14 @@ public class StackedText : MonoBehaviour
     private int _lastRotateHash;
     private StackedTextAnimatableStacks _lastAnimatableStacksRef;
     private bool _lastAnimatableStacksActive;
-    // Working stack list: Stacks + (AnimatableStacks slots if module is active). Rebuilt each
-    // frame so animation-driven changes to the module's fields propagate without extra hooks.
+    private StackedTextStyleApplier _lastStyleApplierRef;
+    private bool _lastStyleApplierActive;
+    private StackedTextShine _lastShineRef;
+    private bool _lastShineActive;
+    private int _lastShineHash;
+    // Working stack list: Stacks (or the applied style's stacks) + (AnimatableStacks slots if
+    // module is active). Rebuilt each frame so animation-driven changes to the module's fields
+    // propagate without extra hooks.
     private readonly List<StackConfig> _workingStacks = new();
 
     // ColorSwap state: parsed once per frame from Text.text into _charHasTag/_charTagColors, then
@@ -121,6 +136,8 @@ public class StackedText : MonoBehaviour
         TryAutoCollectScale();
         TryAutoCollectRotate();
         TryAutoCollectAnimatableStacks();
+        TryAutoCollectStyleApplier();
+        TryAutoCollectShine();
         UnityEditor.EditorApplication.delayCall += ValidateMaterial;
         EnsureShaderChannels();
         _forceUpdateNextFrame = true;
@@ -203,6 +220,8 @@ public class StackedText : MonoBehaviour
         TryAutoCollectScale();
         TryAutoCollectRotate();
         TryAutoCollectAnimatableStacks();
+        TryAutoCollectStyleApplier();
+        TryAutoCollectShine();
         EnsureShaderChannels();
 
         _forceUpdateNextFrame = true;
@@ -230,6 +249,18 @@ public class StackedText : MonoBehaviour
     {
         if (AnimatableStacks == null)
             TryGetComponent(out AnimatableStacks);
+    }
+
+    public void TryAutoCollectStyleApplier()
+    {
+        if (StyleApplier == null)
+            TryGetComponent(out StyleApplier);
+    }
+
+    public void TryAutoCollectShine()
+    {
+        if (Shine == null)
+            TryGetComponent(out Shine);
     }
 
     private void OnDisable()
@@ -427,6 +458,13 @@ public class StackedText : MonoBehaviour
         if (hasAnySwaps)
             ParseCharColorTags();
 
+        bool isShineActive = IsShineActive();
+        Vector2 shineDirection = default;
+        Vector2 shineCenter = default;
+        float shineInverseLength = 0f;
+        if (isShineActive)
+            GetShineProjection(out shineDirection, out shineCenter, out shineInverseLength);
+
         // --- BUILD ONE STACKED MESH PER MATERIAL ---
         // meshInfo[0] is the primary text mesh; meshInfo[1..N] are TMP fallback sub-meshes.
         // RTL / Arabic glyphs that are missing from the primary font atlas live in those
@@ -537,7 +575,6 @@ public class StackedText : MonoBehaviour
                         continue;
 
                     GetNormalizedSoftnessAndDilate(stackConfig.Dilate, stackConfig.Softness, out float dilate, out float softness);
-                    var uv3 = new Vector2(dilate, softness);
                     var layerCount = stackConfig.LayerCount;
                     // Per-stack depth from the optional Rotate module. When non-zero, the offset
                     // is pushed along each vertex's character-local Z axis (post-rotation) so
@@ -547,6 +584,7 @@ public class StackedText : MonoBehaviour
                     bool applyLocalDepth = stackDepth != 0f && _localZAxes.Count >= sourceVCount;
                     bool applyCharScale = _charScales.Count >= sourceVCount;
                     bool stackHasSwaps = hasAnySwaps && stackConfig.ColorSwaps != null && stackConfig.ColorSwaps.Count > 0;
+                    float stackShine = isShineActive ? Mathf.Clamp01(stackConfig.Shine) : 0f;
                     for (int i = layerCount; i >= 1; i--)
                     {
                         float t = layerCount == 1 ? 1 : (i - 1) / ((float)layerCount - 1);
@@ -561,10 +599,14 @@ public class StackedText : MonoBehaviour
                                 vertOffset += stackDepth * _localZAxes[v];
                             if (applyCharScale)
                                 vertOffset *= _charScales[v];
-                            _outVerts.Add(_sourceVerts[v] + vertOffset);
+                            Vector3 layerPosition = _sourceVerts[v] + vertOffset;
+                            _outVerts.Add(layerPosition);
                             _outUVs.Add(_sourceUVs[v]);
                             _outUV2s.Add(_sourceUV2s[v]);
-                            _outUV3s.Add(uv3);
+                            // Each layer is lit at its own offset position, so the band passes
+                            // over the stacks like one light over a 3D object.
+                            float shineCoord = isShineActive ? ProjectShine(layerPosition, shineCenter, shineDirection, shineInverseLength) : 0f;
+                            _outUV3s.Add(new Vector4(dilate, softness, shineCoord, stackShine));
 
                             Color32 vertexColor = layerColor;
                             if (stackHasSwaps && _vertexHasTagColor[v] &&
@@ -584,13 +626,17 @@ public class StackedText : MonoBehaviour
             // governs whether the underlying *text* is hidden (for shadow-only effects); it
             // must not hide icons — they have no shadow stack to stand in for them.
             bool useSourceColorsForMain = isSpriteSlotHere || ShowMainText;
+            float mainShineMask = isShineActive && !isSpriteSlotHere ? 1f : 0f;
             int mainTextVertStart = _outVerts.Count;
             for (int v = 0; v < sourceVCount; v++)
             {
                 _outVerts.Add(_sourceVerts[v]);
                 _outUVs.Add(_sourceUVs[v]);
                 _outUV2s.Add(_sourceUV2s[v]);
-                _outUV3s.Add(mainUV3);
+                // Projected from the final (curved / rotated / scaled) position so the band
+                // follows what is on screen.
+                float shineCoord = isShineActive ? ProjectShine(_sourceVerts[v], shineCenter, shineDirection, shineInverseLength) : 0f;
+                _outUV3s.Add(new Vector4(mainUV3.x, mainUV3.y, shineCoord, mainShineMask));
                 _outColors.Add(useSourceColorsForMain ? _sourceColors[v] : mainFallbackColor);
             }
 
@@ -725,6 +771,16 @@ public class StackedText : MonoBehaviour
             return true;
         if (_lastAnimatableStacksActive != IsAnimatableStacksActive())
             return true;
+        if (_lastStyleApplierRef != StyleApplier)
+            return true;
+        if (_lastStyleApplierActive != IsStyleApplierActive())
+            return true;
+        if (_lastShineRef != Shine)
+            return true;
+        if (_lastShineActive != IsShineActive())
+            return true;
+        if (Shine != null && _lastShineHash != Shine.GetParametersHash())
+            return true;
 
         if (_lastStacks.Count != _workingStacks.Count)
             return true;
@@ -756,13 +812,55 @@ public class StackedText : MonoBehaviour
         return AnimatableStacks != null && AnimatableStacks.enabled && AnimatableStacks.gameObject.activeInHierarchy;
     }
 
+    private bool IsStyleApplierActive()
+    {
+        return StyleApplier != null && StyleApplier.enabled && StyleApplier.gameObject.activeInHierarchy;
+    }
+
+    private bool IsShineActive()
+    {
+        return Shine != null && Shine.enabled && Shine.gameObject.activeInHierarchy;
+    }
+
     private void RebuildWorkingStacks()
     {
         _workingStacks.Clear();
-        for (int i = 0; i < Stacks.Count; i++)
-            _workingStacks.Add(Stacks[i]);
+        if (IsStyleApplierActive() && StyleApplier.TryGetStyleStacks(out var styleStacks))
+        {
+            // The style's list is shared by every text using it, so invalid entries are skipped
+            // here instead of being fixed in place like Stacks (StackedTextStyle fixes them in
+            // its own OnValidate).
+            for (int i = 0; i < styleStacks.Count; i++)
+            {
+                if (!styleStacks[i].IsInvalid())
+                    _workingStacks.Add(styleStacks[i]);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < Stacks.Count; i++)
+                _workingStacks.Add(Stacks[i]);
+        }
         if (IsAnimatableStacksActive())
             AnimatableStacks.AppendActiveStacks(_workingStacks);
+    }
+
+    private void GetShineProjection(out Vector2 direction, out Vector2 center, out float inverseLength)
+    {
+        // Normalize the projection so the corners of the text block land on exactly 0 and 1
+        // whatever the direction, and the band covers the whole block in one sweep.
+        direction = Shine.GetDirection();
+        var bounds = Text.textBounds;
+        center = bounds.center;
+        float length = Mathf.Abs(direction.x) * bounds.size.x + Mathf.Abs(direction.y) * bounds.size.y;
+        inverseLength = length > 1e-4f ? 1f / length : 0f;
+    }
+
+    // Position along the shine direction: 0..1 across the text block. Stack layers offset
+    // outside the block land slightly below 0 or above 1 and are lit a little earlier or later.
+    private static float ProjectShine(Vector3 position, Vector2 center, Vector2 direction, float inverseLength)
+    {
+        return Vector2.Dot((Vector2)position - center, direction) * inverseLength + 0.5f;
     }
 
     private bool IsExtraPaddingRequired()
@@ -972,6 +1070,11 @@ public class StackedText : MonoBehaviour
         _lastRotateHash = Rotate != null ? Rotate.GetParametersHash() : 0;
         _lastAnimatableStacksRef = AnimatableStacks;
         _lastAnimatableStacksActive = IsAnimatableStacksActive();
+        _lastStyleApplierRef = StyleApplier;
+        _lastStyleApplierActive = IsStyleApplierActive();
+        _lastShineRef = Shine;
+        _lastShineActive = IsShineActive();
+        _lastShineHash = Shine != null ? Shine.GetParametersHash() : 0;
         _lastStackCount = _workingStacks.Count;
         _lastStacks.Clear();
         for (int i = 0; i < _workingStacks.Count; i++)
@@ -1032,6 +1135,9 @@ public class StackedText : MonoBehaviour
         public Vector2 EndOffset;
         [Range(0, 1)] public float Softness;
         [Range(-1f, 1f)] public float Dilate;
+        [Tooltip("How much of the StackedTextShine band this stack receives: 0 = none (default), " +
+                 "1 = as much as the main text. Each layer is lit at its own offset position.")]
+        [Range(0f, 1f)] public float Shine;
         public List<ColorSwapPair> ColorSwaps;
 
         public static StackConfig CreateDefault()
@@ -1058,6 +1164,25 @@ public class StackedText : MonoBehaviour
             };
         }
 
+        /// <summary>
+        /// Returns a copy that shares no <see cref="Gradient"/> or <see cref="ColorSwaps"/> list
+        /// with this one, so editing either side leaves the other unchanged.
+        /// </summary>
+        public StackConfig Clone()
+        {
+            var copy = this;
+            if (Color != null)
+            {
+                copy.Color = new Gradient { mode = Color.mode };
+#if UNITY_2022_2_OR_NEWER
+                copy.Color.colorSpace = Color.colorSpace;
+#endif
+                copy.Color.SetKeys(Color.colorKeys, Color.alphaKeys);
+            }
+            copy.ColorSwaps = ColorSwaps != null ? new List<ColorSwapPair>(ColorSwaps) : new List<ColorSwapPair>();
+            return copy;
+        }
+
         public Vector2 GetOffset(float t)
         {
             return Vector2.Lerp(StartOffset, EndOffset, t);
@@ -1074,6 +1199,7 @@ public class StackedText : MonoBehaviour
                 LayerCount != other.LayerCount ||
                 !Mathf.Approximately(Dilate, other.Dilate) ||
                 !Mathf.Approximately(Softness, other.Softness) ||
+                !Mathf.Approximately(Shine, other.Shine) ||
                 StartOffset != other.StartOffset ||
                 EndOffset != other.EndOffset ||
                 !Color.Equals(other.Color) ||

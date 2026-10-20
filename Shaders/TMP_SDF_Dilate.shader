@@ -81,6 +81,14 @@ Properties {
 
 	_CullMode			("Cull Mode", Float) = 0
 	_ColorMask			("Color Mask", Float) = 15
+
+	// Driven per text by the StackedTextShine component; brightness 0 = no shine.
+	_ShineLocation		("Shine Location", Range(0, 1)) = 0
+	_ShineWidth			("Shine Width", Range(0.01, 1)) = 0.25
+	_ShineSoftness		("Shine Softness", Range(0.01, 1)) = 1
+	_ShineBrightness	("Shine Brightness", Range(0, 1)) = 0
+	_ShineGloss			("Shine Gloss", Range(0, 1)) = 1
+	_ShineColor			("Shine Color", Color) = (1,1,1,1)
 }
 
 SubShader {
@@ -140,7 +148,7 @@ SubShader {
 			fixed4	color			: COLOR;
 			float4	texcoord0		: TEXCOORD0;
 			float2	texcoord1		: TEXCOORD1;
-			float2	texcoord3		: TEXCOORD3; // dilate, softness
+			float4	texcoord3		: TEXCOORD3; // dilate, softness, shine position, shine amount
 		};
 
 
@@ -160,6 +168,7 @@ SubShader {
 		#endif
 			float4 textures			: TEXCOORD5;
 			float2 softness         : TEXCOORD6;       // Mask Softness
+			float2 shine			: TEXCOORD7;		// position along the shine direction, shine amount (main text 1, stacks their Shine)
 		};
 
 		// Used by Unity internally to handle Texture Tiling and Offset.
@@ -168,6 +177,13 @@ SubShader {
 		float _UIMaskSoftnessX;
 		float _UIMaskSoftnessY;
 		int _UIVertexColorAlwaysGammaSpace;
+
+		float _ShineLocation;
+		float _ShineWidth;
+		float _ShineSoftness;
+		float _ShineBrightness;
+		float _ShineGloss;
+		fixed4 _ShineColor;
 
 		pixel_t VertShader(vertex_tt input)
 		{
@@ -260,6 +276,7 @@ SubShader {
 			output.underlayColor = underlayColor;
 			#endif
 			output.textures = float4(faceUV, outlineUV);
+			output.shine = input.texcoord3.zw;
 
 			return output;
 		}
@@ -293,6 +310,14 @@ SubShader {
 			outlineColor *= tex2D(_OutlineTex, input.textures.zw + float2(_OutlineUVSpeedX, _OutlineUVSpeedY) * _Time.y);
 
 			faceColor = GetColor(sd, faceColor, outlineColor, outline, softness);
+
+			// Shine band: travels from fully before the text (location 0) to fully past it
+			// (location 1), so the whole duration is visible.
+			float shineCenter = lerp(-_ShineWidth, 1 + _ShineWidth, _ShineLocation);
+			float shineBand = 1 - saturate(abs(input.shine.x - shineCenter) / max(_ShineWidth, 0.0001));
+			float shinePower = smoothstep(0, _ShineSoftness * 2, shineBand) * input.shine.y * _ShineBrightness;
+			half3 shineReflect = _ShineColor.rgb * lerp(1, faceColor.rgb * 10, _ShineGloss);
+			faceColor.rgb += faceColor.a * (shinePower * 0.5) * shineReflect;
 
 		#if BEVEL_ON
 			float3 dxy = float3(0.5 / _TextureWidth, 0.5 / _TextureHeight, 0);
